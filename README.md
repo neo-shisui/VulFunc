@@ -8,3 +8,6 @@
 
 
 ### 3. CXXASTParser
+
+## Credit
+* [TrVD: Deep Semantic Extraction via AST Decomposition for Vulnerability Detection](https://github.com/XUPT-SSS/TrVD/tree/main)
