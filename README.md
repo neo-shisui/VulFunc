@@ -33,5 +33,23 @@
 * `get_root_paths()`: Build all paths from root to each leaf in the AST
 * `get_blocks()`: Splits AST into manageable control blocks
 
+### 4. CXX_Node_Tokenizer
+
+**Purpose:** Tokenize AST nodes (sub-tree); normalize identifiers for ML modeling.
+
+**Key Methods:**
+
+---
+
+## 5. CXX_Vocabulary_Manager
+
+**Purpose:** Maintain a consistent vocabulary with wildcard mapping for C/C++ node tokens.
+
+**Key Methods:**
+
+* `update_vocab(token_lists)`
+* `replace_tokens_with_wildcards(token_list)`
+* `save_vocab()`
+
 ## References
 * [TrVD: Deep Semantic Extraction via AST Decomposition for Vulnerability Detection](https://github.com/XUPT-SSS/TrVD/tree/main)
