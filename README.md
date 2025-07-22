@@ -4,9 +4,17 @@
 
 ### 1. VulnerabilityDictionaryCXX
 
+### 2. CXX_Normalization
+
+**Purpose:** Normalize source code C++ by removing comments and renaming user-defined variables/functions.
+
+**Key Methods:**
+
+* `normalization()`
+
 ---
 
-### 2. CXX_AST_Parser
+### 3. CXX_AST_Parser
 
 **Purpose:** Generate Abstract Syntax Trees (AST) from C/C++ source files using tree-sitter.
 
@@ -24,7 +32,7 @@
 
 ---
 
-### 3. CXX_AST_Traversal
+### 4. CXX_AST_Traversal
 **Purpose:** Generate Abstract Syntax Trees (AST) from C/C++ source files using tree-sitter.
 
 **Key Methods:**
@@ -33,7 +41,7 @@
 * `get_root_paths()`: Build all paths from root to each leaf in the AST
 * `get_blocks()`: Splits AST into manageable control blocks
 
-### 4. CXX_Node_Tokenizer
+### 5. CXX_Node_Tokenizer
 
 **Purpose:** Tokenize AST nodes (sub-tree); normalize identifiers for ML modeling.
 
@@ -41,7 +49,7 @@
 
 ---
 
-## 5. CXX_Vocabulary_Manager
+## 6. CXX_Vocabulary_Manager
 
 **Purpose:** Maintain a consistent vocabulary with wildcard mapping for C/C++ node tokens.
 

@@ -3,3 +3,4 @@ tree-sitter
 gensim
 numpy
 tree-sitter-cpp
+scikit-learn
