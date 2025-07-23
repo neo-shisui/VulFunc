@@ -1,5 +1,10 @@
 import re
-from clean_gadget import clean_gadget
+import pandas as pd
+from pandas import DataFrame
+try:
+    from clean_gadget import clean_gadget
+except:
+    from preprocess.clean_gadget import clean_gadget
 
 class CXXNormalization:
     def __init__(self):
@@ -23,12 +28,19 @@ class CXXNormalization:
             nor_code.append(code[0])
         return nor_code
     
+    def normalization_df(self, df: DataFrame):
+        """Normalize a DataFrame containing source code."""
+        df['code'] = df['code'].apply(lambda x: self.normalization({'code': [x]})[0])
+        print(df['code'][0])  # Print the first normalized code for debugging
+        return df   
+    
 if __name__ == '__main__':
     # Example usage
     gadget = [
         'int foo() {',
         '   // This is a comment',
         '   /* This is a multi-line comment */',
+        '   struct ClassB obj;',
         '   int x = 1;',
         '   int y = 2;',
         '   return x + y;',

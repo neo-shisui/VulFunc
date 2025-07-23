@@ -47,4 +47,6 @@ if __name__ == '__main__':
         '}'
     ]
     cleaned = clean_gadget(gadget)
+    # concat cleaned code into a single string
+    cleaned = ' '.join(cleaned)
     print(cleaned)

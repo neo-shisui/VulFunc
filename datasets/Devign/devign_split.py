@@ -1,8 +1,12 @@
-import pandas as pd
+import os
+import sys
 import json
 import pickle
+import pandas as pd
+
 from sklearn.model_selection import train_test_split
-import os
+
+from preprocess.cxx_normalization import CXXNormalization
 
 def load_json_data(json_file_path):
     """Load JSON data from file."""
@@ -19,6 +23,14 @@ def balance_and_split_data(df, train_ratio=0.7, valid_ratio=0.15, test_ratio=0.1
     """Split data into train, validation, and test sets with balanced project and target."""
     # Rename 'func' column to 'code'
     df = df.rename(columns={'func': 'code'})
+    
+    # Normalize the code
+    # Using 1 sample for demonstration, you can adjust as needed
+    # df = df.iloc[:2]
+    # print("Original code:", df['code'][0].replace('\n', ' '))  # Debugging output
+    normalizer = CXXNormalization()
+    df = normalizer.normalization_df(df)
+    print("Normalized code:", df['code'][0])  # Debugging output
     
     # Create a stratification key based on project and target
     df['stratify_key'] = df['project'] + '_' + df['target'].astype(str)
@@ -72,6 +84,11 @@ def main(json_file_path, output_dir):
 
 if __name__ == "__main__":
     # Example usage
-    input_json = "devign.json"  # Replace with your JSON file path
-    output_directory = "."      # Replace with your desired output directory
+    # Get path from env VULFUNC
+    root_path = os.getenv('VULFUNC', '.')
+    if not root_path:
+        raise ValueError("Please set the VULFUNC environment variable to the root path of VulFunc.")
+    
+    input_json = os.path.join(root_path, 'datasets', 'Devign', 'devign.json')
+    output_directory = os.path.join(root_path, 'datasets', 'Devign')      # Replace with your desired output directory
     main(input_json, output_directory)

@@ -47,6 +47,8 @@
 
 **Key Methods:**
 
+* `tokenize()`
+
 ---
 
 ## 6. CXX_Vocabulary_Manager
@@ -58,6 +60,14 @@
 * `update_vocab(token_lists)`
 * `replace_tokens_with_wildcards(token_list)`
 * `save_vocab()`
+
+---
+
+## Usage
+
+```
+$ export PYTHONPATH=$PWD
+```
 
 ## References
 * [TrVD: Deep Semantic Extraction via AST Decomposition for Vulnerability Detection](https://github.com/XUPT-SSS/TrVD/tree/main)
