@@ -27,7 +27,7 @@ class CXXNodeTokenizer:
         get_sequences(tree, self.token_sequences)
 
         # Preserve unique tokens
-        self.token_sequences = list(set(self.token_sequences))
+        # self.token_sequences = list(set(self.token_sequences))
         return self.token_sequences
        
     def get_token_sequences(self):

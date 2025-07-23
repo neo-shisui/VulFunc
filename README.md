@@ -51,14 +51,13 @@
 
 ---
 
-## 6. CXX_Vocabulary_Manager
+### 6. CXX_Vocabulary_Manager
 
-**Purpose:** Maintain a consistent vocabulary with wildcard mapping for C/C++ node tokens.
+**Purpose:** Maintain a consistent vocabulary for C/C++ node tokens.
 
 **Key Methods:**
 
 * `update_vocab(token_lists)`
-* `replace_tokens_with_wildcards(token_list)`
 * `save_vocab()`
 
 ---
