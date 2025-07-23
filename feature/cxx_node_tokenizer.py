@@ -1,5 +1,8 @@
 import re
 import keyword
+import tree_sitter_cpp
+from tree_sitter import Language, Parser
+from cxx_ast_traversal import get_root_paths, get_sequences
 
 class CXXNodeTokenizer:
     """
@@ -12,48 +15,33 @@ class CXXNodeTokenizer:
         self.var_counter = 0
         self.func_counter = 0
 
-    def tokenize(self, java_code):
-        # Basic tokenizer based on word and operator boundaries
-        tokens = re.findall(r"\b\w+\b|[^\s\w]", java_code)
-        self.token_sequences.append(tokens)
-        return tokens
+        # AST Parser
+        self.parser = Parser()
+        self.parser.language = Language(tree_sitter_cpp.language())
+    
+    def tokenize(self, source):
+        # Parse the source code into an AST
+        tree = self.parser.parse(source.encode('utf-8').decode('unicode_escape').encode())
 
-    def normalize_identifiers(self, tokens):
-        normalized = []
-        for tok in tokens:
-            if keyword.iskeyword(tok) or tok in ["int", "String", "public", "class", "void"]:
-                normalized.append(tok)
-            elif re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", tok):
-                if tok not in self.identifier_map:
-                    if tok[0].isupper():  # likely a class or type
-                        self.identifier_map[tok] = f"Type_{len(self.identifier_map)}"
-                    elif tok.endswith("()"):  # likely a method
-                        self.identifier_map[tok] = f"func_{self.func_counter}"
-                        self.func_counter += 1
-                    else:
-                        self.identifier_map[tok] = f"var_{self.var_counter}"
-                        self.var_counter += 1
-                normalized.append(self.identifier_map[tok])
-            else:
-                normalized.append(tok)
-        return normalized
+        # Convert the AST to a sequence of tokens
+        get_sequences(tree, self.token_sequences)
 
+        # Preserve unique tokens
+        self.token_sequences = list(set(self.token_sequences))
+        return self.token_sequences
+       
     def get_token_sequences(self):
         return self.token_sequences
 
 # Example usage
 if __name__ == "__main__":
-    java_code = """
-    public class HelloWorld {
-        public static void main(String[] args) {
-            String message = "Hello, World!";
-            System.out.println(message);
-        }
-    }
+    cxx_code = """
+        int FUN1() { int VAR2 = 1;    int VAR3 = 2;    return VAR2 + VAR3; }
     """
 
+    print(cxx_code)
+
     tokenizer = CXXNodeTokenizer()
-    tokens = tokenizer.tokenize(java_code)
-    normalized = tokenizer.normalize_identifiers(tokens)
-    print("Original Tokens:", tokens)
-    print("Normalized Tokens:", normalized)
+    tokens = tokenizer.tokenize(cxx_code)
+    print("Tokens:", tokens)
+    print("Number of unique tokens:", len(tokens))
