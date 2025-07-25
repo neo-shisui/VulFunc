@@ -21,7 +21,7 @@ class CXXNormalization:
                 line = line.strip()
                 # Remove single-line comments (content after //)
                 line = re.sub('//.*', '', line)
-                code += line + ' '
+                code += line + '\n'
             # Remove multi-line comments (content between /* and */)
             code = re.sub('/\\*.*?\\*/', '', code)
             code = clean_gadget([code])

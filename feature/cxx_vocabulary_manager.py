@@ -1,4 +1,9 @@
+import os
 import json
+
+# Configuration
+DATA_DIR = "CXX_AST_DATA"
+VOCAB_DIR = os.path.join(DATA_DIR, "vocab")
 
 class CXXVocabularyManager:
     """
@@ -9,6 +14,7 @@ class CXXVocabularyManager:
         self.max_vocab_size = max_vocab_size
         self.tokens = {}
         self.next_index = 0
+        self.combined_tokens = set()
 
     def update_vocab(self, token_lists):
         for tokens in token_lists:
@@ -35,6 +41,36 @@ class CXXVocabularyManager:
         with open(filepath, "w") as f:
             json.dump(self.tokens, f, indent=4)
 
+    def save_vocab_files(self):
+        """Save vocabulary files to disk."""
+        print("[+] Saving vocabulary files...")
+        os.makedirs(DATA_DIR, exist_ok=True)
+        os.makedirs(VOCAB_DIR, exist_ok=True)
+
+        with open(os.path.join(VOCAB_DIR, "vocab.txt"), "w", encoding="utf-8") as f:
+            self.combined_tokens = sorted(self.tokens.keys())
+            # self.combined_tokens = sorted(
+            #     self.normal_tokens.union(self.anomalous_tokens)
+            # )
+            # Add <unk> and <pad> at the end of the combined tokens
+            self.combined_tokens.append("<unk>")
+            self.combined_tokens.append("<pad>")
+
+            for token in self.combined_tokens:
+                f.write(f"{token}\n")
+
+        vocab_index = {token: idx for idx,
+                       token in enumerate(self.combined_tokens)}
+
+        with open(os.path.join(VOCAB_DIR, "vocab.json"), "w", encoding="utf-8") as f_json:
+            import json
+            json.dump(vocab_index, f_json, ensure_ascii=False, indent=4)
+
+        print(f"Vocabulary files saved to {VOCAB_DIR}")
+        # print(f"  - Normal tokens: {len(self.normal_tokens)}")
+        # print(f"  - Anomalous tokens: {len(self.anomalous_tokens)}")
+        print(f"  - Combined total: {len(self.combined_tokens)}")
+
 # Example usage
 if __name__ == "__main__":
     from cxx_node_tokenizer import CXXNodeTokenizer
@@ -52,4 +88,4 @@ if __name__ == "__main__":
     vocab_mgr = CXXVocabularyManager()
     vocab_mgr.update_vocab(tokens)
     print(vocab_mgr.tokens)
-    vocab_mgr.save_vocab()
+    vocab_mgr.save_vocab_files()

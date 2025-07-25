@@ -1,7 +1,10 @@
 import copy
 import tree_sitter
 
-from cxx_ast_parser import ASTNode, SingleNode, needs_splitting, get_tree_size, get_max_depth
+try:
+    from cxx_ast_parser import ASTNode, SingleNode, needs_splitting, get_tree_size, get_max_depth
+except:
+    from feature.cxx_ast_parser import ASTNode, SingleNode, needs_splitting, get_tree_size, get_max_depth
 
 def get_sequences(node, sequence: list):
     current = SingleNode(node)
@@ -154,20 +157,32 @@ if __name__ == '__main__':
     CPP_LANGUAGE = Language(tree_sitter_cpp.language())  
     parser.language = CPP_LANGUAGE
 
-    code = 'void main() { int a = 0; }'
+    code = """
+static void FUN1(VAR1 *VAR2)  {  
+#if FUN2(VAR3)  
+    FUN3(VAR2, VAR4);  
+#else  
+    if (FUN4(VAR2->VAR5)) {  
+        FUN3(VAR2, VAR4);  
+        return;  
+    }  
+    FUN5(VAR6, VAR7[FUN6(VAR2->VAR8)],  VAR7[FUN7(VAR2->VAR8)]);  
+#endif  
+}
+"""
 
     tree = parser.parse(bytes(code, 'utf8'))
     root_node = tree.root_node
 
-    # sequences = []
-    # get_sequences(root_node, sequences)
-    # print(sequences)
+    sequences = []
+    get_sequences(root_node, sequences)
+    print(sequences)
 
-    root_paths = []
-    get_root_paths(root_node, root_paths, [])
-    for path in root_paths:
-        print(path) 
-    print('Total paths:', len(root_paths))
+    # root_paths = []
+    # get_root_paths(root_node, root_paths, [])
+    # for path in root_paths:
+    #     print(path) 
+    # print('Total paths:', len(root_paths))
     # print(root_paths)
 
     # block_seq = []

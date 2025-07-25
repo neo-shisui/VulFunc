@@ -2,6 +2,7 @@
 # - https://github.com/XUPT-SSS/TrVD/blob/main/clean_gadget.py
 
 import re
+from pandas import DataFrame
 
 # keywords up to C11 and C++17; immutable set
 keywords = frozenset(['__asm', '__builtin', '__cdecl', '__declspec', '__except', '__export', '__far16', '__far32',
@@ -162,7 +163,7 @@ main_set = frozenset({'main'})
 # arguments in main d2a; immutable set
 main_args = frozenset({'argc', 'argv'})
 
-# input is a list of string lines
+# input is a C++ gadget as a string (function body)
 def clean_gadget(gadget):
     # dictionary; map d2a name to symbol name + number
     fun_symbols = {}
@@ -172,11 +173,21 @@ def clean_gadget(gadget):
     fun_count = 1
     var_count = 1
 
+    # Remove comments from the function
+    # Remove multi-line comments
+    gadget = re.sub('/\\*.*?\\*/', '', gadget, flags=re.DOTALL) 
+    lines = gadget.split('\n')
+    gadget = ''
+    for line in lines:
+        # Check if empty line
+        if not line.strip():
+            continue
+        
+        # Remove single-line comments (content after //)
+        line = re.sub('//.*', '', line)
+        gadget += line + '\n'
+
     # Regular expression to catch multi-line comment
-    # - Comment that ends with */
-    # TODO:
-    # - Comment between /* and */
-    # - Comment starts with /*
     rx_comment = re.compile(r'\*/\s*$')
     
     # Regular expression to find d2a name candidates
@@ -190,76 +201,97 @@ def clean_gadget(gadget):
     rx_var = re.compile(r'\b([_A-Za-z]\w*)\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()')
 
     # final cleaned gadget output to return to interface
-    cleaned_gadget = []
+    cleaned_gadget = None
+    # process function if not the header line and not a multi-line commented line
+    if rx_comment.search(gadget) is None:
+        # remove all string literals (keep the quotes)
+        nostrlit_line = re.sub(r'".*?"', '""', gadget)
+        # remove all character literals
+        nocharlit_line = re.sub(r"'.*?'", "''", nostrlit_line)
+        # replace any non-ASCII characters with empty string
+        ascii_line = re.sub(r'[^\x00-\x7f]', r'', nocharlit_line)
 
-    for line in gadget:
-        # process if not the header line and not a multi-line commented line
-        if rx_comment.search(line) is None:
-            # remove all string literals (keep the quotes)
-            nostrlit_line = re.sub(r'".*?"', '""', line)
-            # remove all character literals
-            nocharlit_line = re.sub(r"'.*?'", "''", nostrlit_line)
-            # replace any non-ASCII characters with empty string
-            ascii_line = re.sub(r'[^\x00-\x7f]', r'', nocharlit_line)
+        # return, in order, all regex matches at string list; preserves order for semantics
+        user_fun = rx_fun.findall(ascii_line)
+        user_var = rx_var.findall(ascii_line)
 
-            # return, in order, all regex matches at string list; preserves order for semantics
-            user_fun = rx_fun.findall(ascii_line)
-            user_var = rx_var.findall(ascii_line)
+        # Could easily make a "clean gadget" type class to prevent duplicate functionality
+        # of creating/comparing symbol names for functions and variables in much the same way.
+        # The comparison frozenset, symbol dictionaries, and counters would be class scope.
+        # So would only need to pass a string list and a string literal for symbol names to
+        # another d2a.
+        for fun_name in user_fun:
+            if len({fun_name}.difference(main_set)) != 0 and len({fun_name}.difference(keywords)) != 0:
+                # DEBUG
+                #print('comparing ' + str(fun_name + ' to ' + str(main_set)))
+                #print(fun_name + ' diff len from main is ' + str(len({fun_name}.difference(main_set))))
+                #print('comparing ' + str(fun_name + ' to ' + str(keywords)))
+                #print(fun_name + ' diff len from keywords is ' + str(len({fun_name}.difference(keywords))))
+                ###
+                # check to see if d2a name already in dictionary
+                if fun_name not in fun_symbols.keys():
+                    fun_symbols[fun_name] = 'FUN_' + str(fun_count)
+                    fun_count += 1
+                # ensure that only d2a name gets replaced (no variable name with same
+                # identifier); uses positive lookforward
+                ascii_line = re.sub(r'\b(' + fun_name + r')\b(?=\s*\()', fun_symbols[fun_name], ascii_line)
 
-            # Could easily make a "clean gadget" type class to prevent duplicate functionality
-            # of creating/comparing symbol names for functions and variables in much the same way.
-            # The comparison frozenset, symbol dictionaries, and counters would be class scope.
-            # So would only need to pass a string list and a string literal for symbol names to
-            # another d2a.
-            for fun_name in user_fun:
-                if len({fun_name}.difference(main_set)) != 0 and len({fun_name}.difference(keywords)) != 0:
-                    # DEBUG
-                    #print('comparing ' + str(fun_name + ' to ' + str(main_set)))
-                    #print(fun_name + ' diff len from main is ' + str(len({fun_name}.difference(main_set))))
-                    #print('comparing ' + str(fun_name + ' to ' + str(keywords)))
-                    #print(fun_name + ' diff len from keywords is ' + str(len({fun_name}.difference(keywords))))
-                    ###
-                    # check to see if d2a name already in dictionary
-                    if fun_name not in fun_symbols.keys():
-                        fun_symbols[fun_name] = 'FUN_' + str(fun_count)
-                        fun_count += 1
-                    # ensure that only d2a name gets replaced (no variable name with same
-                    # identifier); uses positive lookforward
-                    ascii_line = re.sub(r'\b(' + fun_name + r')\b(?=\s*\()', fun_symbols[fun_name], ascii_line)
+        for var_name in user_var:
+            # next line is the nuanced difference between fun_name and var_name
+            if len({var_name}.difference(keywords)) != 0 and len({var_name}.difference(main_args)) != 0:
+                # DEBUG
+                #print('comparing ' + str(var_name + ' to ' + str(keywords)))
+                #print(var_name + ' diff len from keywords is ' + str(len({var_name}.difference(keywords))))
+                #print('comparing ' + str(var_name + ' to ' + str(main_args)))
+                #print(var_name + ' diff len from main args is ' + str(len({var_name}.difference(main_args))))
+                ###
+                # check to see if variable name already in dictionary
+                if var_name not in var_symbols.keys():
+                    var_symbols[var_name] = 'VAR_' + str(var_count)
+                    var_count += 1
+                # ensure that only variable name gets replaced (no d2a name with same
+                # identifier); uses negative lookforward
+                ascii_line = re.sub(r'\b(' + var_name + r')\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()', \
+                                    var_symbols[var_name], ascii_line)
 
-            for var_name in user_var:
-                # next line is the nuanced difference between fun_name and var_name
-                if len({var_name}.difference(keywords)) != 0 and len({var_name}.difference(main_args)) != 0:
-                    # DEBUG
-                    #print('comparing ' + str(var_name + ' to ' + str(keywords)))
-                    #print(var_name + ' diff len from keywords is ' + str(len({var_name}.difference(keywords))))
-                    #print('comparing ' + str(var_name + ' to ' + str(main_args)))
-                    #print(var_name + ' diff len from main args is ' + str(len({var_name}.difference(main_args))))
-                    ###
-                    # check to see if variable name already in dictionary
-                    if var_name not in var_symbols.keys():
-                        var_symbols[var_name] = 'VAR_' + str(var_count)
-                        var_count += 1
-                    # ensure that only variable name gets replaced (no d2a name with same
-                    # identifier); uses negative lookforward
-                    ascii_line = re.sub(r'\b(' + var_name + r')\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()', \
-                                        var_symbols[var_name], ascii_line)
-
-            cleaned_gadget.append(ascii_line)
-    # return the list of cleaned lines
-    # print(cleaned_gadget)
+        cleaned_gadget = ascii_line
     return cleaned_gadget
 
+class CXXNormalization:
+    def __init__(self):
+        """Initialize the CXXNormalization class."""
+        pass  # No initialization needed based on the provided function
+
+    def normalization(self, source):
+        """Normalize source code by removing comments and cleaning."""
+        nor_code = clean_gadget(source)
+
+        # nor_code = []
+        # for func in source['code']:
+        #     code = clean_gadget(func)
+        #     print("Func:", func)
+        #     # print(code) 
+        #     nor_code.append(code)
+        return nor_code
+    
+    def normalization_df(self, df: DataFrame):
+        """Normalize a DataFrame containing source code."""
+        df['code'] = df['code'].apply(lambda x: self.normalization({'code': [x]})[0])
+        print(df['code'][0])  # Print the first normalized code for debugging
+        return df   
+    
 if __name__ == '__main__':
     # Example usage
-    gadget = [
-        'int foo() {',
-        '   // This is a comment',
-        '   /* This is a multi-line comment */',
-        '   int x = 1;',
-        '   int y = 2;',
-        '   return x + y;',
-        '}'
-    ]
-    cleaned = clean_gadget(gadget)
-    print(cleaned)
+    gadget = """
+        int foo() {
+           // This is a comment
+           /* This is a multi-line comment */
+           struct ClassB obj;
+           int x = 1;
+           int y = 2;
+           return x + y;
+        }
+    """
+    normalizer = CXXNormalization()
+    nor_code = normalizer.normalization(gadget)
+    print(nor_code)

@@ -2,7 +2,10 @@ import re
 import keyword
 import tree_sitter_cpp
 from tree_sitter import Language, Parser
-from cxx_ast_traversal import get_root_paths, get_sequences
+try:
+    from cxx_ast_traversal import get_root_paths, get_sequences
+except:
+    from feature.cxx_ast_traversal import get_root_paths, get_sequences
 
 class CXXNodeTokenizer:
     """
@@ -19,7 +22,7 @@ class CXXNodeTokenizer:
         self.parser = Parser()
         self.parser.language = Language(tree_sitter_cpp.language())
     
-    def tokenize(self, source):
+    def tokenize_source(self, source):
         # Parse the source code into an AST
         tree = self.parser.parse(source.encode('utf-8').decode('unicode_escape').encode())
 
@@ -28,6 +31,11 @@ class CXXNodeTokenizer:
 
         # Preserve unique tokens
         # self.token_sequences = list(set(self.token_sequences))
+        return self.token_sequences
+    
+    def tokenize(self, ast):
+        # Convert the AST to a sequence of tokens
+        get_sequences(ast, self.token_sequences)
         return self.token_sequences
        
     def get_token_sequences(self):
