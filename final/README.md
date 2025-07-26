@@ -62,6 +62,16 @@
 
 ---
 
+### 7. CXX_Token_Embedding
+
+**Purpose:** 
+
+**Key Methods:**
+
+---
+
+### 8. LSTM_Model
+
 ## Usage
 
 ```
