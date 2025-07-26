@@ -180,7 +180,8 @@ def clean_gadget(gadget):
     gadget = ''
     for line in lines:
         # Check if empty line
-        if not line.strip():
+        pattern = r"^[ \t\r\n]*$"
+        if re.fullmatch(pattern, line):
             continue
         
         # Remove single-line comments (content after //)
@@ -200,8 +201,6 @@ def clean_gadget(gadget):
     #rx_var = re.compile(r'\b([_A-Za-z]\w*)\b(?!\s*\()')
     rx_var = re.compile(r'\b([_A-Za-z]\w*)\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()')
 
-    # final cleaned gadget output to return to interface
-    cleaned_gadget = None
     # process function if not the header line and not a multi-line commented line
     if rx_comment.search(gadget) is None:
         # remove all string literals (keep the quotes)
@@ -253,8 +252,19 @@ def clean_gadget(gadget):
                 # identifier); uses negative lookforward
                 ascii_line = re.sub(r'\b(' + var_name + r')\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()', \
                                     var_symbols[var_name], ascii_line)
+    else:
+        return None
+    
+    # Continue remove emtpty lines and trailing whitespace
+    cleaned_gadget = ''
+    lines = ascii_line.split('\n')
+    for line in lines:
+        # Check if empty line
+        pattern = r"^[ \t\r\n]*$"
+        if re.fullmatch(pattern, line):
+            continue
 
-        cleaned_gadget = ascii_line
+        cleaned_gadget = cleaned_gadget + line.strip() + '\n'
     return cleaned_gadget
 
 class CXXNormalization:

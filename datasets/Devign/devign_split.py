@@ -6,8 +6,6 @@ import pandas as pd
 
 from sklearn.model_selection import train_test_split
 
-from preprocess.cxx_normalization import CXXNormalization
-
 def load_json_data(json_file_path):
     """Load JSON data from file."""
     with open(json_file_path, 'r') as file:
@@ -28,8 +26,8 @@ def balance_and_split_data(df, train_ratio=0.7, valid_ratio=0.15, test_ratio=0.1
     # Using 1 sample for demonstration, you can adjust as needed
     # df = df.iloc[:2]
     # print("Original code:", df['code'][0].replace('\n', ' '))  # Debugging output
-    normalizer = CXXNormalization()
-    df = normalizer.normalization_df(df)
+    # normalizer = CXXNormalization()
+    # df = normalizer.normalization_df(df)
     print("Normalized code:", df['code'][0])  # Debugging output
     
     # Create a stratification key based on project and target
@@ -83,12 +81,6 @@ def main(json_file_path, output_dir):
     print(f"Test: {len(test_df)} samples")
 
 if __name__ == "__main__":
-    # Example usage
-    # Get path from env VULFUNC
-    root_path = os.getenv('VULFUNC', '.')
-    if not root_path:
-        raise ValueError("Please set the VULFUNC environment variable to the root path of VulFunc.")
-    
-    input_json = os.path.join(root_path, 'datasets', 'Devign', 'devign.json')
-    output_directory = os.path.join(root_path, 'datasets', 'Devign')      # Replace with your desired output directory
-    main(input_json, output_directory)
+    # input_json = os.path.join(root_path, 'datasets', 'Devign', 'devign.json')
+    # output_directory = os.path.join(root_path, 'datasets', 'Devign')      # Replace with your desired output directory
+    main('devign.json', '.')

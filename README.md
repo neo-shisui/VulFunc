@@ -10,7 +10,7 @@
 
 **Key Methods:**
 
-* `normalization()`
+* `normalization(source)`
 
 ---
 
