@@ -1,3 +1,4 @@
+import json
 import tree_sitter
 
 def get_max_depth(node):
@@ -65,11 +66,15 @@ class ASTNode(object):
             token = self.node.type
             if self.is_leaf:
                 token = self.node.text
+                if self.node.type == "number_literal":
+                    token = "<num>"
             return token
         else:
             token = self.node.root_node.type
             if self.is_leaf:
                 token = self.node.root_node.text
+                if self.node.root_node.type == "number_literal":
+                    token = "<num>"
             return token
 
     # Populates the self.children list based on the node’s children and the do_split flag.
@@ -108,7 +113,6 @@ class SingleNode(ASTNode):
         self.children = []
 
     def is_leaf_node(self):
-        # return len(self.node.children) == 0
         if not isinstance(self.node, tree_sitter.Tree):
             return len(self.node.children) == 0
         else:
@@ -118,12 +122,16 @@ class SingleNode(ASTNode):
         if not isinstance(self.node, tree_sitter.Tree):
             token = self.node.type
             if self.is_leaf:
-                token = self.node.text
+                token = str(self.node.text)
+                if self.node.type == "number_literal":
+                    token = "<num>" 
             return token
         else:
             token = self.node.root_node.type
             if self.is_leaf:
-                token = self.node.root_node.text
+                token = str(self.node.root_node.text)
+                if self.node.root_node.type == "number_literal":
+                    token = "<num>" 
             return token
 
 def is_leaf_node(node):
@@ -142,14 +150,41 @@ def print_ast(node, level=0):
     if not isinstance(node, tree_sitter.Tree):
         children = node.children
         name = node.type
+        token = node.text
     else:
         children = node.root_node.children
         name = node.root_node.type
+        token = node.root_node.text
 
-    print(' ' * level + name)
+    # if len(children) == 0:
+    #     return
+
+    print(' ' * level + name + ' ' + str(token))
     for child in children:
         print_ast(child, level + 1)
         pass
+
+def get_sequences(node, sequence: list):
+    current = SingleNode(node)
+
+    if not isinstance(node, tree_sitter.Tree):
+        name = node.type
+    else:
+        name = node.root_node.type
+
+    if name == 'comment':
+        return
+    else:
+        sequence.append(current.get_token())
+
+    if not isinstance(node, tree_sitter.Tree):
+        for child in node.children:
+            get_sequences(child, sequence)
+    else:
+        for child in node.root_node.children:
+            get_sequences(child, sequence)
+    if current.get_token().lower() == 'compound_statement':
+        sequence.append('End')
 
 if __name__ == '__main__':
     import tree_sitter_cpp
@@ -157,10 +192,37 @@ if __name__ == '__main__':
     parser = tree_sitter.Parser()
     parser.language = CPP_LANGUAGE
 
-    source = 'int main() { int a = 0; if (a > 0) { a++; } return a; }'
+    source = """
+static void virtio_9p_device_unrealize(DeviceState *dev, Error **errp)
+{
+    int a = 1;
+    int b[10];
+    int *c = &a;
+    a = a  + 2;
+    VirtIODevice *vdev;
+    int x = virtio_cleanup(vdev);
+}"""
+#     VirtIODevice *vdev = VIRTIO_DEVICE(dev);
+
+#     V9fsVirtioState *v = VIRTIO_9P(dev);
+
+#     V9fsState *s = &v->state;
+
+#     virtio_cleanup(vdev);
+
+#     v9fs_device_unrealize_common(s, errp);
+# }"""
     print("Source code:", source)
     # Parse the source code into an AST
     tree = parser.parse(source.encode('utf-8').decode('unicode_escape').encode())
-    print_ast(tree)
+    # print_ast(tree)
 
-    
+    sequence = []
+    get_sequences(tree, sequence)
+    for i, seq in enumerate(sequence):
+        print(f"Token {i}: {seq}")
+    # print("Token sequence:", sequence)
+
+    # x = ast_to_json(tree)
+
+    # print("AST in JSON format:", json.dumps(x, indent=2))

@@ -155,16 +155,13 @@ if __name__ == '__main__':
     parser.language = CPP_LANGUAGE
 
     code = """
-static void FUN1(VAR1 *VAR2)  {  
-#if FUN2(VAR3)  
-    FUN3(VAR2, VAR4);  
-#else  
-    if (FUN4(VAR2->VAR5)) {  
-        FUN3(VAR2, VAR4);  
-        return;  
-    }  
-    FUN5(VAR6, VAR7[FUN6(VAR2->VAR8)],  VAR7[FUN7(VAR2->VAR8)]);  
-#endif  
+static void FUN_1(VAR_1 *VAR_2, VAR_3 **VAR_4)
+{
+VAR_5 *VAR_6 = FUN_2(VAR_2);
+VAR_7 *VAR_8 = FUN_3(VAR_2);
+VAR_9 *VAR_10 = &VAR_8->VAR_11;
+FUN_4(VAR_6);
+FUN_5(VAR_10, VAR_4);
 }
 """
 

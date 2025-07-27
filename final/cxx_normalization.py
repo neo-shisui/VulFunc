@@ -2,6 +2,8 @@
 # - https://github.com/XUPT-SSS/TrVD/blob/main/clean_gadget.py
 
 import re
+import tree_sitter
+import tree_sitter_cpp
 from pandas import DataFrame
 
 # keywords up to C11 and C++17; immutable set
@@ -163,15 +165,35 @@ main_set = frozenset({'main'})
 # arguments in main d2a; immutable set
 main_args = frozenset({'argc', 'argv'})
 
+ # Initialize the tree-sitter parser for C++
+CPP_LANGUAGE = tree_sitter.Language(tree_sitter_cpp.language())
+parser = tree_sitter.Parser()
+parser.language = CPP_LANGUAGE
+
+# Get struct/class from C++ gadget by type `type_identifier` (using tree-sitter)
+def get_struct_class(node, types: list):
+    token = node.text.decode('utf8')
+    if node.type == 'type_identifier' and token not in types:
+        return types.append(token)
+
+    # Get the children of the node
+    children = node.children
+    for child in children:
+        # Recursively call the function for each child
+        get_struct_class(child, types)
+
 # input is a C++ gadget as a string (function body)
 def clean_gadget(gadget):
     # dictionary; map d2a name to symbol name + number
     fun_symbols = {}
     # dictionary; map variable name to symbol name + number
     var_symbols = {}
+    # dictionary; map class/struct name to symbol name + number
+    type_symbols = {}
 
     fun_count = 1
     var_count = 1
+    type_count = 1
 
     # Remove comments from the function
     # Remove multi-line comments
@@ -194,7 +216,7 @@ def clean_gadget(gadget):
     # Regular expression to find d2a name candidates
     # - followed by an opening parenthesis (
     rx_fun = re.compile(r'\b([_A-Za-z]\w*)\b(?=\s*\()')
-    
+
     # Regular expression to find variable name candidates
     # - followed by a space and then an opening parenthesis (or no parenthesis)
     # - or not followed by a parenthesis at all
@@ -213,6 +235,11 @@ def clean_gadget(gadget):
         # return, in order, all regex matches at string list; preserves order for semantics
         user_fun = rx_fun.findall(ascii_line)
         user_var = rx_var.findall(ascii_line)
+        user_type = []
+        get_struct_class(parser.parse(bytes(ascii_line, 'utf8')).root_node, user_type)
+        for type_name in user_type:
+            if type_name in user_var:
+                user_var.remove(type_name)
 
         # Could easily make a "clean gadget" type class to prevent duplicate functionality
         # of creating/comparing symbol names for functions and variables in much the same way.
@@ -235,9 +262,27 @@ def clean_gadget(gadget):
                 # identifier); uses positive lookforward
                 ascii_line = re.sub(r'\b(' + fun_name + r')\b(?=\s*\()', fun_symbols[fun_name], ascii_line)
 
+        for type_name in user_type:
+            if type_name not in type_symbols.keys():
+                type_symbols[type_name] = 'TYPE_' + str(type_count)
+                type_count += 1
+            # Replace type names
+            ascii_line = re.sub(r'\b(' + type_name + r')\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()', \
+                                type_symbols[type_name], ascii_line)
+
+            if type_name not in type_symbols.keys():
+                type_symbols[type_name] = 'TYPE_' + str(type_count)
+                type_count += 1
+            # ensure that only type name gets replaced (no d2a name with same
+            # identifier); uses positive lookahead
+            ascii_line = re.sub(r'\b(' + type_name + r')\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()', \
+                                type_symbols[type_name], ascii_line)
+
+        # print('Type symbols:', type_symbols)
+
         for var_name in user_var:
             # next line is the nuanced difference between fun_name and var_name
-            if len({var_name}.difference(keywords)) != 0 and len({var_name}.difference(main_args)) != 0:
+            if len({var_name}.difference(keywords)) != 0 and len({var_name}.difference(main_args)) != 0 and var_name not in type_symbols.values():
                 # DEBUG
                 #print('comparing ' + str(var_name + ' to ' + str(keywords)))
                 #print(var_name + ' diff len from keywords is ' + str(len({var_name}.difference(keywords))))
@@ -245,16 +290,18 @@ def clean_gadget(gadget):
                 #print(var_name + ' diff len from main args is ' + str(len({var_name}.difference(main_args))))
                 ###
                 # check to see if variable name already in dictionary
-                if var_name not in var_symbols.keys():
+                if var_name not in var_symbols.keys() and var_name not in type_symbols.keys():
+                    # print('Adding variable: ' + var_name)
                     var_symbols[var_name] = 'VAR_' + str(var_count)
                     var_count += 1
                 # ensure that only variable name gets replaced (no d2a name with same
                 # identifier); uses negative lookforward
                 ascii_line = re.sub(r'\b(' + var_name + r')\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()', \
                                     var_symbols[var_name], ascii_line)
+    
     else:
         return None
-    
+
     # Continue remove emtpty lines and trailing whitespace
     cleaned_gadget = ''
     lines = ascii_line.split('\n')
@@ -291,17 +338,27 @@ class CXXNormalization:
         return df   
     
 if __name__ == '__main__':
-    # Example usage
     gadget = """
-        int foo() {
-           // This is a comment
-           /* This is a multi-line comment */
-           struct ClassB obj;
-           int x = 1;
-           int y = 2;
-           return x + y;
-        }
-    """
+static void virtio_9p_device_unrealize(DeviceState *dev, Error **errp)
+{
+    VirtIODevice *vdev = VIRTIO_DEVICE(dev);
+
+    V9fsVirtioState *v = VIRTIO_9P(dev);
+
+    V9fsState *s = &v->state;
+
+    virtio_cleanup(vdev);
+
+    v9fs_device_unrealize_common(s, errp);
+}"""
+
     normalizer = CXXNormalization()
     nor_code = normalizer.normalization(gadget)
     print(nor_code)
+
+    # tree = parser.parse(gadget.encode('utf-8').decode('unicode_escape').encode())
+    # print_ast(tree)
+
+    # types = []
+    # get_struct_class(tree.root_node, types)
+    # print("Types found:", types)

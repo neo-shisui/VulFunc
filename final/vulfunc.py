@@ -2,6 +2,11 @@ import argparse
 import copy
 import pandas as pd
 import os
+import re
+import json
+import pickle
+import keyword
+import logging
 import tree_sitter_cpp
 from tree_sitter import Language, Parser
 
@@ -10,12 +15,20 @@ import sys
 from cxx_node_tokenizer import CXXNodeTokenizer
 from cxx_vocabulary_manager import CXXVocabularyManager
 from cxx_normalization import CXXNormalization
-# from preprocess.cxx_normalization import CXXNormalization
+from cxx_token_embedding import CXXTokenEmbedding
+from lstm import LSTMModel
+from cxx_ast_traversal import get_root_paths, get_sequences
+
 
 # Configurations
 DATASET_PATH = [
     '../datasets/Devign/train.pkl',
 ]
+
+VOCAB_PATH = 'CXX_AST_DATA/vocab/vocab.json'
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='vulfunc.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def generate_vocab():
     """
@@ -43,6 +56,48 @@ def generate_vocab():
     vocab_mgr.save_vocab_files()
     print("Vocabulary saved to vocab.json")
 
+def train():
+    # Read vocabulary from file
+    vocab = {}
+    with open(VOCAB_PATH, 'r') as f:
+        vocab = json.load(f)
+    vocab_size = len(vocab)
+    logger.info(f"Vocabulary size: {vocab_size}")
+    
+    # Load the training dataset
+    train = pd.read_pickle(DATASET_PATH[0])[:80]
+
+    # Convert the code to AST
+    # Print code with target is 0
+    for i in range(0, len(train)):
+        if train['target'].iloc[i] == 0:
+            print(train['code'].iloc[i])
+    # print(train['code'].iloc[1])  # Debugging output
+    # print(train['target'].iloc[1])  # Debugging output
+    train['code'] = train['code'].apply(lambda x: parse_ast(x))
+
+    # Tokenize the code
+    tokenizer = CXXNodeTokenizer()
+    train['tokens'] = train['code'].apply(lambda x: tokenizer.tokenize(x))
+    logger.info(f"Number of training samples: {len(train)}")
+
+    # Convert tokens to indices
+    # print("Example first tokens:", train['tokens'].iloc[0])  # Debugging output
+    # train['tokens'] = train['tokens'].apply(lambda x: [vocab.get(token, 0) for token in x])  # Default to 0 for unknown tokens
+    # logger.info("Tokenization completed.")
+
+    # print("Example tokens:", train['tokens'].iloc[0])  # Debugging output
+
+    # # Covert tokens to indices
+    # train['token_indices'] = train['tokens'].apply(lambda x: [vocab.get(token, 0) for token in x])  # Default to 0 for unknown tokens
+
+    # # Train the model
+    # model = LSTMModel(vocab_size, embedding_dim, hidden_dim=256, num_layers=2, num_classes=2)
+    # logger.info("LSTM model initialized.")
+
+
+
+
 def parse_options():
     parser = argparse.ArgumentParser(description='TrVD preprocess~.')
     parser.add_argument('-i', '--input', default='mutrvd', choices=['mutrvd', 'TrVD', 'Devign'],
@@ -51,6 +106,8 @@ def parse_options():
     # Optional
     parser.add_argument('-g', '--gen-vocab', action='store_true',
                         help='Generate vocabulary file', required=False)
+    parser.add_argument('-t', '--train', action='store_true',
+                        help='Train the model', required=False)
     args = parser.parse_args()
     return args
 
@@ -78,8 +135,11 @@ class VulFuncPipeline:
 
         # Build vocabs.json
         if args.gen_vocab:
-            print("[+] Generating vocabulary...")
+            logger.info("[+] Generating vocabulary...")
             generate_vocab()
+        if args.train:
+            logger.info("[+] Training the model...")
+            train()
 
 if __name__ == '__main__':
     ppl = VulFuncPipeline()

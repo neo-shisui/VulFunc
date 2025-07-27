@@ -42,7 +42,15 @@ class CXXNodeTokenizer:
 # Example usage
 if __name__ == "__main__":
     cxx_code = """
-        int FUN1() { int VAR2 = 1;    int VAR3 = 2;    return VAR2 + VAR3; }
+        static void FUN_1(VAR_1 *VAR_2, VAR_3 **VAR_4)
+{
+VAR_5 *VAR_6 = FUN_2(VAR_2);
+VAR_7 *VAR_8 = FUN_3(VAR_2);
+VAR_9 *VAR_10 = &VAR_8->VAR_11;
+FUN_4(VAR_6);
+FUN_5(VAR_10, VAR_4);
+}
+
     """
 
     print(cxx_code)
