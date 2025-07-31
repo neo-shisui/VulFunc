@@ -122,16 +122,16 @@ class SingleNode(ASTNode):
         if not isinstance(self.node, tree_sitter.Tree):
             token = self.node.type
             if self.is_leaf:
-                token = str(self.node.text)
-                if self.node.type == "number_literal":
-                    token = "<num>" 
+                token = self.node.text.decode('utf-8')
+                # if self.node.type == "number_literal":
+                #     token = "<num>" 
             return token
         else:
             token = self.node.root_node.type
             if self.is_leaf:
-                token = str(self.node.root_node.text)
-                if self.node.root_node.type == "number_literal":
-                    token = "<num>" 
+                token = self.node.root_node.text.decode('utf-8')
+                # if self.node.root_node.type == "number_literal":
+                #     token = "<num>" 
             return token
 
 def is_leaf_node(node):
@@ -159,7 +159,7 @@ def print_ast(node, level=0):
     # if len(children) == 0:
     #     return
 
-    print(' ' * level + name + ' ' + str(token))
+    print(' ' * level + name)
     for child in children:
         print_ast(child, level + 1)
         pass
@@ -193,14 +193,13 @@ if __name__ == '__main__':
     parser.language = CPP_LANGUAGE
 
     source = """
-static void virtio_9p_device_unrealize(DeviceState *dev, Error **errp)
+static void FUN_1(DeviceState *VAR_1, Error **VAR_2)
 {
-    int a = 1;
-    int b[10];
-    int *c = &a;
-    a = a  + 2;
-    VirtIODevice *vdev;
-    int x = virtio_cleanup(vdev);
+     VirtIODevice *VAR_3 = FUN_2(VAR_1);
+     V9fsVirtioState *VAR_4 = FUN_3(VAR_1);
+     V9fsState *VAR_5 = &VAR_4->VAR_6;
+     FUN_4(VAR_3);
+     FUN_5(VAR_5, VAR_2);
 }"""
 #     VirtIODevice *vdev = VIRTIO_DEVICE(dev);
 
@@ -215,12 +214,13 @@ static void virtio_9p_device_unrealize(DeviceState *dev, Error **errp)
     print("Source code:", source)
     # Parse the source code into an AST
     tree = parser.parse(source.encode('utf-8').decode('unicode_escape').encode())
-    # print_ast(tree)
+    print_ast(tree)
 
     sequence = []
     get_sequences(tree, sequence)
-    for i, seq in enumerate(sequence):
-        print(f"Token {i}: {seq}")
+    print(sequence)
+    # for i, seq in enumerate(sequence):
+    #     print(f"Token {i}: {seq}")
     # print("Token sequence:", sequence)
 
     # x = ast_to_json(tree)

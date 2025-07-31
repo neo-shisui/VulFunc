@@ -170,7 +170,7 @@ CPP_LANGUAGE = tree_sitter.Language(tree_sitter_cpp.language())
 parser = tree_sitter.Parser()
 parser.language = CPP_LANGUAGE
 
-# Get struct/class from C++ gadget by type `type_identifier` (using tree-sitter)
+# Get struct/class/enum from C++ gadget by type `type_identifier` (using tree-sitter)
 def get_struct_class(node, types: list):
     token = node.text.decode('utf8')
     if node.type == 'type_identifier' and token not in types:
@@ -236,10 +236,10 @@ def clean_gadget(gadget):
         user_fun = rx_fun.findall(ascii_line)
         user_var = rx_var.findall(ascii_line)
         user_type = []
-        get_struct_class(parser.parse(bytes(ascii_line, 'utf8')).root_node, user_type)
-        for type_name in user_type:
-            if type_name in user_var:
-                user_var.remove(type_name)
+        # get_struct_class(parser.parse(bytes(ascii_line, 'utf8')).root_node, user_type)
+        # for var_name in user_var:
+        #     if var_name in user_type:
+        #         user_var.remove(var_name)
 
         # Could easily make a "clean gadget" type class to prevent duplicate functionality
         # of creating/comparing symbol names for functions and variables in much the same way.
@@ -269,15 +269,7 @@ def clean_gadget(gadget):
             # Replace type names
             ascii_line = re.sub(r'\b(' + type_name + r')\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()', \
                                 type_symbols[type_name], ascii_line)
-
-            if type_name not in type_symbols.keys():
-                type_symbols[type_name] = 'TYPE_' + str(type_count)
-                type_count += 1
-            # ensure that only type name gets replaced (no d2a name with same
-            # identifier); uses positive lookahead
-            ascii_line = re.sub(r'\b(' + type_name + r')\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()', \
-                                type_symbols[type_name], ascii_line)
-
+            ascii_line = re.sub(r'\b(' + type_name + r')\b(?!\s*\()', type_symbols[type_name], ascii_line)
         # print('Type symbols:', type_symbols)
 
         for var_name in user_var:
@@ -290,10 +282,13 @@ def clean_gadget(gadget):
                 #print(var_name + ' diff len from main args is ' + str(len({var_name}.difference(main_args))))
                 ###
                 # check to see if variable name already in dictionary
-                if var_name not in var_symbols.keys() and var_name not in type_symbols.keys():
+                if var_name not in var_symbols.keys() and var_name not in user_type:
                     # print('Adding variable: ' + var_name)
                     var_symbols[var_name] = 'VAR_' + str(var_count)
                     var_count += 1
+                else:
+                    continue
+
                 # ensure that only variable name gets replaced (no d2a name with same
                 # identifier); uses negative lookforward
                 ascii_line = re.sub(r'\b(' + var_name + r')\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()', \
@@ -324,7 +319,9 @@ class CXXNormalization:
         nor_code = clean_gadget(source)
 
         # nor_code = []
+        # print(source)
         # for func in source['code']:
+        #     print(func)
         #     code = clean_gadget(func)
         #     print("Func:", func)
         #     # print(code) 

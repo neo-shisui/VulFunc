@@ -25,11 +25,14 @@ class CXXNodeTokenizer:
         tree = self.parser.parse(source.encode('utf-8').decode('unicode_escape').encode())
 
         # Convert the AST to a sequence of tokens
-        get_sequences(tree, self.token_sequences)
+        sequences = []
+        get_sequences(tree, sequences)
+        # print(source)
+        # print(len(sequences))
 
         # Preserve unique tokens
         # self.token_sequences = list(set(self.token_sequences))
-        return self.token_sequences
+        return sequences
     
     def tokenize(self, ast):
         # Convert the AST to a sequence of tokens

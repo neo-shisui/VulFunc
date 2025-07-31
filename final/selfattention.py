@@ -55,6 +55,32 @@ class SelfAttention(nn.Module):
         
         return out
 
+# Transformer Model incorporating SelfAttention
+class TransformerModel(nn.Module):
+    def __init__(self, vocab_size, embed_size, heads, num_layers, dropout=0.1):
+        super(TransformerModel, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embed_size)
+        self.attention = SelfAttention(embed_size, heads)
+        self.layers = nn.ModuleList([
+            nn.Sequential(
+                nn.LayerNorm(embed_size),
+                SelfAttention(embed_size, heads),
+                nn.Dropout(dropout),
+                nn.Linear(embed_size, embed_size),
+                nn.ReLU(),
+                nn.LayerNorm(embed_size)
+            ) for _ in range(num_layers)
+        ])
+        self.fc_out = nn.Linear(embed_size, vocab_size)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x, mask=None):
+        x = self.embedding(x)
+        for layer in self.layers:
+            x = layer(x)
+        out = self.fc_out(x)
+        return out
+
 # Example usage
 if __name__ == "__main__":
     embed_size = 256

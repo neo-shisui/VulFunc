@@ -155,13 +155,16 @@ if __name__ == '__main__':
     parser.language = CPP_LANGUAGE
 
     code = """
-static void FUN_1(VAR_1 *VAR_2, VAR_3 **VAR_4)
+static int FUN_1(VAR_1 *VAR_2, int VAR_3)
 {
-VAR_5 *VAR_6 = FUN_2(VAR_2);
-VAR_7 *VAR_8 = FUN_3(VAR_2);
-VAR_9 *VAR_10 = &VAR_8->VAR_11;
-FUN_4(VAR_6);
-FUN_5(VAR_10, VAR_4);
+int64_t VAR_4;
+if (VAR_3 >= VAR_2->VAR_5)
+return 0;
+if (VAR_3 + 1 == VAR_2->VAR_5)
+VAR_4 = VAR_2->VAR_6 + VAR_2->VAR_7;
+else
+VAR_4 = VAR_2->VAR_8[VAR_3 + 1].VAR_9;
+return VAR_4 - VAR_2->VAR_8[VAR_3].VAR_9;
 }
 """
 
@@ -171,6 +174,7 @@ FUN_5(VAR_10, VAR_4);
     sequences = []
     get_sequences(root_node, sequences)
     print(sequences)
+    print(len(sequences))
 
     # root_paths = []
     # get_root_paths(root_node, root_paths, [])
