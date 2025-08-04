@@ -1,5 +1,10 @@
 import json
+import argparse
+import sys
 import tree_sitter
+
+from cxx_function_parser import CXXFunctionParser
+from cxx_normalization import CXXNormalization
 
 def get_max_depth(node):
     if not node:
@@ -168,18 +173,18 @@ def is_leaf_node(node):
 
 def print_ast(node, level=0, text_tree=''):
     if not node:
-        return
+        return text_tree
     if isinstance(node, list):
         for n in node:
-            print_ast(n, level, text_tree)
-        return
+            text_tree = print_ast(n, level, text_tree)
+        return text_tree
     if not isinstance(node, tree_sitter.Tree):
         children = node.children
         name = node.type
         token = ''
         if is_leaf_node(node):
             token = node.text
-            if type(token) is bytes:
+            if isinstance(token, bytes):
                 token = token.decode('utf-8')
     else:
         children = node.root_node.children
@@ -187,18 +192,12 @@ def print_ast(node, level=0, text_tree=''):
         token = ''
         if is_leaf_node(node.root_node):
             token = node.root_node.text.decode('utf-8')
-            # if node.root_node.type == "number_literal":
-            #     token = "<num
 
-    # if len(children) == 0:
-    #     return
-
-    print(' ' * level + name + ' ' + token)
-    with open('ast.txt', 'a') as f:
-        f.write(' ' * level + name + ' ' + token + '\n')
+    # print(' ' * level + name + ' ' + token)
     text_tree = text_tree + ' ' * level + name + '\n'
     for child in children:
-        print_ast(child, level + 1, text_tree)
+        text_tree = print_ast(child, level + 1, text_tree)
+    return text_tree
 
 def get_sequences(node, sequence: list):
     current = SingleNode(node)
@@ -223,98 +222,147 @@ def get_sequences(node, sequence: list):
         sequence.append('End')
 
 if __name__ == '__main__':
+    # Handle parameters
+    parser = argparse.ArgumentParser(description='Cxx AST Parser')
+    parser.add_argument('--file', type=str, required=True, help='Path to the C++ file to parse')
+    parser.add_argument('--output', type=str, required=False, default='functions.json', help='Path to the output JSON file')
+    args = parser.parse_args()
+
+    # Create a CXXFunctionParser instance
+    parser = CXXFunctionParser()
+    functions = parser.extract_functions_from_cpp(args.file)
+
+    # Save the extracted functions to a JSON file
+    with open(args.output, 'w') as f:
+        json.dump(functions, f, indent=4)
+    
+    print(f"[+] Extracted {len(functions)} functions from {args.file} and saved to {args.output}.")
+
+    # Normalize
+    normalizer = CXXNormalization()
+
     import tree_sitter_cpp
     CPP_LANGUAGE = tree_sitter.Language(tree_sitter_cpp.language())
     parser = tree_sitter.Parser()
     parser.language = CPP_LANGUAGE
+    for func in functions:
+        # print(f"Function: {func}")
+        code = func['code']
+        if code is None:
+            print("[-] Code is None, skipping normalization.")
+            continue
+        normalized_code = normalizer.normalization(code)
+        with open('normalized_code.txt', 'a') as f:
+            f.write(normalized_code + '\n')
 
-    source = """void* bad(int x){
-    char * data;
-    vector<char *> dataVector;
-    char dataBuffer[100] = "";
-    data = dataBuffer;
-    {
-        WSADATA wsaData;
-        BOOL wsaDataInit = FALSE;
-        SOCKET listenSocket = INVALID_SOCKET;
-        SOCKET acceptSocket = INVALID_SOCKET;
-        struct sockaddr_in service;
-        int recvResult;
-        do
-        {
-            if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
-            {
-                break;
-            }
-            wsaDataInit = 1;
-            listenSocket = socket(PF_INET, SOCK_STREAM, 0);
-            if (listenSocket == INVALID_SOCKET)
-            {
-                break;
-            }
-            memset(&service, 0, sizeof(service));
-            service.sin_family = AF_INET;
-            service.sin_addr.s_addr = INADDR_ANY;
-            service.sin_port = htons(LISTEN_PORT);
-            if (SOCKET_ERROR == bind(listenSocket, (struct sockaddr*)&service, sizeof(service)))
-            {
-                break;
-            }
-            if (SOCKET_ERROR == listen(listenSocket, LISTEN_BACKLOG))
-            {
-                break;
-            }
-            acceptSocket = accept(listenSocket, NULL, NULL);
-            if (acceptSocket == INVALID_SOCKET)
-            {
-                break;
-            }
-            /* INCIDENTAL CWE 188 - reliance on data memory layout
-             * recv and friends return "number of bytes" received
-             * char's on our system, however, may not be "octets" (8-bit
-             * bytes) but could be just about anything.  Also,
-             * even if the external environment is ASCII or UTF8,
-             * the ANSI/ISO C standard does not dictate that the
-             * character set used by the actual language or character
-             * constants matches.
-             *
-             * In practice none of these are usually issues...
-             */
-            /* FLAW: read the new hostname from a network socket */
-            recvResult = recv(acceptSocket, data, 100 - 1, 0);
-            if (recvResult == SOCKET_ERROR || recvResult == 0)
-            {
-                break;
-            }
-            data[recvResult] = '\0';
-        }
-        while (0);
-        if (acceptSocket != INVALID_SOCKET)
-        {
-            closesocket(acceptSocket);
-        }
-        if (listenSocket != INVALID_SOCKET)
-        {
-            closesocket(listenSocket);
-        }
-        if (wsaDataInit)
-        {
-            WSACleanup();
-        }
-    }
-"""
+        # Tokenize the normalized code
+        tree = parser.parse(normalized_code.encode('utf-8').decode('unicode_escape').encode())
 
-    source = """
-void bad(int x){
-    int a = 10.1;
-}
-"""
+        # Save AST to file
+        with open('ast.txt', 'a') as f:
+            text = ''
+            text = print_ast(tree, 0, text)
+            f.write(f"Function: {func['name']}\n")
+            f.write(text + '\n')
+            f.write('-' * 40 + '\n')
 
-    # print("Source code:", source)
-    # Parse the source code into an AST
-    tree = parser.parse(source.encode('utf-8').decode('unicode_escape').encode())
-    text = ''
-    print_ast(tree, 0, text)
+        sequences = []
+        get_sequences(tree, sequences)
+        # Write as array to a file
+        with open('token_sequences.txt', 'a') as f:
+            f.write(json.dumps(sequences) + '\n')
+
+            
+    print("[+] Check 'normalized_code.txt', 'ast.txt' and 'token_sequences.txt' for results.")
+#     sys.exit(0)
+
+#     source = """void* bad(int x){
+#     char * data;
+#     vector<char *> dataVector;
+#     char dataBuffer[100] = "";
+#     data = dataBuffer;
+#     {
+#         WSADATA wsaData;
+#         BOOL wsaDataInit = FALSE;
+#         SOCKET listenSocket = INVALID_SOCKET;
+#         SOCKET acceptSocket = INVALID_SOCKET;
+#         struct sockaddr_in service;
+#         int recvResult;
+#         do
+#         {
+#             if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
+#             {
+#                 break;
+#             }
+#             wsaDataInit = 1;
+#             listenSocket = socket(PF_INET, SOCK_STREAM, 0);
+#             if (listenSocket == INVALID_SOCKET)
+#             {
+#                 break;
+#             }
+#             memset(&service, 0, sizeof(service));
+#             service.sin_family = AF_INET;
+#             service.sin_addr.s_addr = INADDR_ANY;
+#             service.sin_port = htons(LISTEN_PORT);
+#             if (SOCKET_ERROR == bind(listenSocket, (struct sockaddr*)&service, sizeof(service)))
+#             {
+#                 break;
+#             }
+#             if (SOCKET_ERROR == listen(listenSocket, LISTEN_BACKLOG))
+#             {
+#                 break;
+#             }
+#             acceptSocket = accept(listenSocket, NULL, NULL);
+#             if (acceptSocket == INVALID_SOCKET)
+#             {
+#                 break;
+#             }
+#             /* INCIDENTAL CWE 188 - reliance on data memory layout
+#              * recv and friends return "number of bytes" received
+#              * char's on our system, however, may not be "octets" (8-bit
+#              * bytes) but could be just about anything.  Also,
+#              * even if the external environment is ASCII or UTF8,
+#              * the ANSI/ISO C standard does not dictate that the
+#              * character set used by the actual language or character
+#              * constants matches.
+#              *
+#              * In practice none of these are usually issues...
+#              */
+#             /* FLAW: read the new hostname from a network socket */
+#             recvResult = recv(acceptSocket, data, 100 - 1, 0);
+#             if (recvResult == SOCKET_ERROR || recvResult == 0)
+#             {
+#                 break;
+#             }
+#             data[recvResult] = '\0';
+#         }
+#         while (0);
+#         if (acceptSocket != INVALID_SOCKET)
+#         {
+#             closesocket(acceptSocket);
+#         }
+#         if (listenSocket != INVALID_SOCKET)
+#         {
+#             closesocket(listenSocket);
+#         }
+#         if (wsaDataInit)
+#         {
+#             WSACleanup();
+#         }
+#     }
+# """
+
+#     source = """
+# void bad(int x){
+#     int a = 10.1;
+# }
+# """
+
+#     # print("Source code:", source)
+#     # Parse the source code into an AST
+#     tree = parser.parse(source.encode('utf-8').decode('unicode_escape').encode())
+#     text = ''
+#     print_ast(tree, 0, text)
     # with open('ast.txt', 'w') as f:
     #     f.write(text)
 
