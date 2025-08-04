@@ -28,14 +28,23 @@ from selfattention import SelfAttention, TransformerModel
 
 # Configurations
 DATASET_PATH = [
-    '../datasets/Devign/devign.pkl',
-    '../datasets/SARD/sard.pkl',
+    '../datasets/Devign/devign.json',
+    '../datasets/SARD/sard.json',
+    '../datasets/BigVul/bigvul.json',
 ]
 
 VOCAB_PATH = 'CXX_AST_DATA/vocab/vocab.json'
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='vulfunc.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def load_json_file(file_path):
+    """
+    Load a JSON file and return its content.
+    """
+    with open(file_path, 'r') as f:
+        data = json.load(f)
+    return data
 
 def filter_tokens_by_vocab(tokens, vocab):
     """
@@ -204,18 +213,44 @@ def generate_vocab():
     """
     print("[+] Geneting vocab")
     # Load the dataset
-    devign_dataset = pd.read_pickle(DATASET_PATH[0])
-    sard_dataset = pd.read_pickle(DATASET_PATH[1])
+    devign_dataset = load_json_file(DATASET_PATH[0])
+    sard_dataset = load_json_file(DATASET_PATH[1])
+    bigvul_dataset = load_json_file(DATASET_PATH[2])
     # print(sard_dataset.columns)
     # print(type(devign_dataset))
     # print(type(sard_dataset))
     # return
 
+    # Using 100 samples form Devign dataset for testing
+    # devign_dataset = devign_dataset
+    # sard_dataset = sard_dataset
+
+    # Get code columns
+    devign_dataset = pd.DataFrame(devign_dataset)
+    sard_dataset = pd.DataFrame(sard_dataset)
+    bigvul_dataset = pd.DataFrame(bigvul_dataset)
+    
+    # Check if 'code' column exists
+    if 'code' not in devign_dataset.columns:
+        raise ValueError("The 'code' column is missing from the Devign dataset.")
+
+    # Check if 'code' column exists
+    if 'code' not in sard_dataset.columns:
+        raise ValueError("The 'code' column is missing from the SARD dataset.")
+
+    # Using column func_before as code for BigVul dataset
+    if 'func_before' not in bigvul_dataset.columns:
+        raise ValueError("The 'func_before' column is missing from the BigVul dataset.")
+
     df1_code = devign_dataset[['code']].copy()
     df2_code = sard_dataset[['code']].copy()
+    df3_code = bigvul_dataset[['func_before']].copy()
+    
+    # Rename columns to 'code' for consistency
+    df3_code.rename(columns={'func_before': 'code'}, inplace=True)
 
     # Concatenate the DataFrames
-    dataset = pd.concat([df1_code, df2_code], ignore_index=True)
+    dataset = pd.concat([df3_code, df2_code, df1_code], ignore_index=True)
     
     # Initialize the tokenizer and vocabulary manager
     normalizer = CXXNormalization()
@@ -225,12 +260,16 @@ def generate_vocab():
     # Normalize the code
     dataset['code'] = dataset['code'].apply(lambda x: normalizer.normalization(x))
 
+    # Drop None values in 'code' column
+    dataset.dropna(subset=['code'], inplace=True)
+    # dataset['code'].dropna(inplace=True)  # Drop any rows with NaN in 'code'
+
     # Tokenize the code and update the vocabulary
     tokens_lists = dataset['code'].apply(lambda x: tokenizer.tokenize_source(x)).tolist()
     vocab_mgr.update_vocab(tokens_lists)
     
     # Save the vocabulary to files
-    vocab_mgr.save_vocab_files()
+    vocab_mgr.save_vocab()
     logger.info("Vocabulary saved to vocab.json")
 
 def train(dataset=DATASET_PATH[0], model="lstm"):

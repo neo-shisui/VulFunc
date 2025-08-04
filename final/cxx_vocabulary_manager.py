@@ -13,7 +13,7 @@ class CXXVocabularyManager:
     def __init__(self, max_vocab_size=30000):
         self.max_vocab_size = max_vocab_size
         # self.tokens = {}
-        self.tokens = set()
+        self.tokens = {}
         self.count = 0
 
     def update_vocab(self, token_lists):
@@ -23,11 +23,11 @@ class CXXVocabularyManager:
             for token in tokens:
                 if isinstance(token, bytes):
                     token = token.decode('utf-8')
-                if token not in self.tokens or self.count < self.max_vocab_size:
-                    if self.count < self.max_vocab_size:                        
-                        # wildcard = f"token_{self.count:05d}"
-                        self.tokens.add(token)
-                        self.count += 1
+                if token in self.tokens:
+                    self.tokens[token] += 1
+                elif self.count < self.max_vocab_size:
+                    self.tokens[token] = 1
+                    self.count += 1 
 
         # tokens_str_keys = {k.decode('utf-8') if isinstance(k, bytes) else k: v for k, v in self.tokens.items()}
 
@@ -35,13 +35,40 @@ class CXXVocabularyManager:
     # def replace_tokens_with_wildcards(self, token_list):
     #     return [self.tokens.get(token, "<UNK>") for token in token_list]
 
-    def save_vocab(self, filepath="vocab.json"):
-        sorted_items = sorted(self.tokens.items(), key=lambda x: x[0])
-        self.tokens = {k: idx for idx, (k, _) in enumerate(sorted_items)}
+    # def save_vocab(self, filepath="vocab.json"):
+    #     sorted_items = sorted(self.tokens.items(), key=lambda x: x[0])
+    #     self.tokens = {k: idx for idx, (k, _) in enumerate(sorted_items)}
 
-        # Save the vocabulary to a JSON file (from dict to JSON)
-        with open(filepath, "w") as f:
-            json.dump(self.tokens, f, indent=4)
+    #     # Save the vocabulary to a JSON file (from dict to JSON)
+    #     with open(filepath, "w") as f:
+    #         json.dump(self.tokens, f, indent=4)
+
+    def save_vocab(self, index_filepath="vocab.json", freq_filepath="frequencies.json"):
+        """
+        Saves two files: one mapping tokens to indices and another with token frequencies.
+        Args:
+            index_filepath: Path to save the token-to-index JSON file.
+            freq_filepath: Path to save the token-to-frequency JSON file.
+        """
+        os.makedirs(DATA_DIR, exist_ok=True)
+        os.makedirs(VOCAB_DIR, exist_ok=True)
+
+        # Create token-to-index mapping (sorted alphabetically by token)
+        sorted_items = sorted(self.tokens.items(), key=lambda x: x[0])
+        token_to_index = {k: idx for idx, (k, _) in enumerate(sorted_items)}
+
+        # Save token-to-index mapping
+        with open(os.path.join(VOCAB_DIR, index_filepath), "w", encoding='utf-8') as f:
+            json.dump(token_to_index, f, indent=4, ensure_ascii=False)
+
+        # Save token-to-frequency mapping (sorted by frequency, descending)
+        sorted_by_freq = sorted(self.tokens.items(), key=lambda x: x[1], reverse=True)
+        token_to_freq = {k: v for k, v in sorted_by_freq}
+
+        with open(os.path.join(VOCAB_DIR, freq_filepath), "w", encoding='utf-8') as f:
+            json.dump(token_to_freq, f, indent=4, ensure_ascii=False)
+
+        print(f"[+] Vocabulary size: {len(self.tokens)}")
 
     def save_vocab_files(self):
         """Save vocabulary files to disk."""

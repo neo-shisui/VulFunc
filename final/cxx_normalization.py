@@ -6,6 +6,9 @@ import tree_sitter
 import tree_sitter_cpp
 from pandas import DataFrame
 
+sockets = frozenset(['socket', 'bind', 'listen', 'accept', 'connect', 'send', 'recv', 'sendto', 'recvfrom', 'closesocket',
+                     'WSAStartup', 'WSACleanup', 'getsockname', 'getpeername', 'getsockopt', 'setsockopt'])
+
 # keywords up to C11 and C++17; immutable set
 keywords = frozenset(['__asm', '__builtin', '__cdecl', '__declspec', '__except', '__export', '__far16', '__far32',
                       '__fastcall', '__finally', '__import', '__inline', '__int16', '__int32', '__int64', '__int8',
@@ -159,7 +162,11 @@ keywords = frozenset(['__asm', '__builtin', '__cdecl', '__declspec', '__except',
                       'OracleDataAdapter.Update', 'OleDbCommand.ExecuteScalar', 'stdin', 'SqlDataSource.Delete',
                       'OleDbDataAdapter.Fill', 'fstream.putback', 'IDbDataAdapter.Fill', '_wspawnl', 'fwprintf',
                       'sem_wait', '_unlink', 'ldap_search_ext_sW', 'signal', 'PQclear', 'PQfinish', 'PQexec',
-                      'PQresultStatus','ifdef','endif','bool','void'])
+                      'PQresultStatus','ifdef','endif','bool','void',
+
+                      # Socket functions
+                      'WSAStartup', 'WSACleanup',
+                      ])
 # holds known non-user-defined functions; immutable set
 main_set = frozenset({'main'})
 # arguments in main d2a; immutable set
@@ -182,6 +189,148 @@ def get_struct_class(node, types: list):
         # Recursively call the function for each child
         get_struct_class(child, types)
 
+def get_function_type(node, functions: dict):
+    if node.type == 'function_definition':
+        function_signature = node.text.decode('utf8').split('(')[0].strip()  # Get the function signature before the parameters
+        # print('Function Signature: ', function_signature)
+
+        function_name = function_signature.split(' ')[-1]  # Get the function name from the signature
+        return_type = normalize_type(' '.join(function_signature.split(' ')[:-1]))
+        # print('Function Name: ', function_name, ' Return Type: ', return_type)
+        if function_name not in functions:
+            functions[function_name] = return_type
+    else:
+        # Recursively traverse the children of the node
+        for child in node.children:
+            get_function_type(child, functions)
+
+def get_variable_type(node, variables: dict):
+    if node.type == 'declaration':
+        declare_expr = node.text.decode('utf8').split('=')[0].rstrip().replace(';', '')  # Get the declaration expression, remove assignment and semicolon
+        # print('Declaration: ', declare_expr)
+
+        _type = ' '.join(declare_expr.split(' ')[:-1])  # Get the type from the declaration
+        variable_name = declare_expr.split(' ')[-1]  # Get the variable name from the declaration
+
+        # Check if variable is array
+        if '[' in variable_name and ']' in variable_name:
+            variable_name = variable_name.split('[')[0]
+            _type += '[]'  # Append array notation to type
+
+        # print('Variable Name: ', variable_name, ' Type: ', _type)
+        # print('')
+
+        # Normalize the type and store it in the variables dictionary
+        normalized_type = normalize_type(_type)
+        if variable_name not in variables:
+            variables[variable_name] = normalized_type
+
+        # print(node.text)
+        _type = ''
+        for child in node.children:
+            # print(child.type, child.text)
+            # Pointer or reference
+            if child.type == 'pointer_declarator':
+                for subchild in child.children:
+                    pass
+                    # print('Pointer: ', subchild.type, subchild.text)
+            # Get type
+            if child.type == 'type_identifier' or child.type == 'primitive_type' or child.type == 'struct_specifier' or child.type == 'template_type':
+                _type = normalize_type(child.text.decode('utf8'))
+                # print('Type: ', child.text, ' ', _type)
+            # print(child.type, child.text)
+            # if len(child.children) != 0:
+
+        # token = node.text.decode('utf8')
+        # if token not in variables:
+        #     variables[token] = []
+    else:
+        # Recursively traverse the children of the node
+        for child in node.children:
+            # If the child is a type identifier, add it to the variables dictionary
+            # if child.type == 'type_identifier':
+            #     token = child.text.decode('utf8')
+            #     if token not in variables:
+            #         variables[token] = []
+            # Recursively call the function for each child
+            get_variable_type(child, variables)
+
+# Normalize type names (remove spaces, pointers, etc.)
+def normalize_type(type_str):
+    # Replace multiple spaces with a single underscore
+    type_str = re.sub(r'\s+', '_', type_str) 
+
+    # Replace pointers by 'ptr' and references by 'ref'
+    type_str = re.sub(r'\*+', '_ptr', type_str)  # Replace multiple pointers with 'ptr'
+    type_str = re.sub(r'\&+', '_ref', type_str)
+
+    # Replace pattern <...> with 'template_<type>'
+    type_str = re.sub(r'<([^>]*)>', r'_template_\1', type_str)
+
+    # Replace array notation with 'array'
+    type_str = re.sub(r'\[\s*\]', '_array', type_str)
+
+    # Remove multi underscores by single underscore
+    type_str = re.sub(r'_+', '_', type_str)
+
+    return type_str
+
+# Extract function information using tree-sitter
+def extract_functions(code):
+    tree = parser.parse(bytes(code, 'utf8'))
+    root = tree.root_node
+    functions = []
+
+    def traverse(node):
+        if node.type == 'function_definition':
+            return_type = ''
+            func_name = ''
+            params = []
+            body = ''
+            
+            for child in node.children:
+                if child.type == 'type_identifier' or child.type == 'primitive_type' or child.type == 'type_qualifier':
+                    return_type += child.text.decode('utf8') + ' '
+                elif child.type == 'function_declarator':
+                    for subchild in child.children:
+                        if subchild.type == 'identifier':
+                            func_name = subchild.text.decode('utf8')
+                        elif subchild.type == 'parameter_list':
+                            for param in subchild.children:
+                                if param.type == 'parameter_declaration':
+                                    param_type = ''
+                                    param_name = ''
+                                    for pchild in param.children:
+                                        if pchild.type in ('type_identifier', 'primitive_type', 'type_qualifier'):
+                                            param_type += pchild.text.decode('utf8') + ' '
+                                        elif pchild.type == 'identifier':
+                                            param_name = pchild.text.decode('utf8')
+                                    if param_name:
+                                        params.append((param_type.strip(), param_name))
+                elif child.type == 'compound_statement':
+                    body = child.text.decode('utf8')
+            
+            if func_name:
+                functions.append({
+                    'return_type': return_type.strip(),
+                    'name': func_name,
+                    'params': params,
+                    'body': body
+                })
+        
+        for child in node.children:
+            traverse(child)
+
+    traverse(root)
+    return functions
+
+# Function to clean invalid unicode escape sequences
+def clean_invalid_escapes(text):
+    # Replace invalid \x escapes with a placeholder or remove them
+    cleaned = re.sub(r'\\x(?:[^0-9a-fA-F]|[0-9a-fA-F]{1,3}(?![0-9a-fA-F]))', '', text)
+    cleaned = re.sub(r'\\U[0-9a-fA-F]{0,7}(?![0-9a-fA-F])', '', cleaned)
+    return cleaned
+
 # input is a C++ gadget as a string (function body)
 def clean_gadget(gadget):
     # dictionary; map d2a name to symbol name + number
@@ -190,6 +339,22 @@ def clean_gadget(gadget):
     var_symbols = {}
     # dictionary; map class/struct name to symbol name + number
     type_symbols = {}
+
+    gadget = clean_invalid_escapes(gadget)
+
+    try:
+        tree = parser.parse(gadget.encode('utf-8').decode('unicode_escape').encode())
+    except Exception as e:
+        print(f"Error parsing gadget: {e}")
+        return None
+
+    vars_type = dict()
+    get_variable_type(tree.root_node, vars_type)
+    # print('Variable types:', vars_type)
+
+    func_type = dict()
+    get_function_type(tree.root_node, func_type)
+    # print('Function types:', func_type)
 
     fun_count = 1
     var_count = 1
@@ -219,9 +384,9 @@ def clean_gadget(gadget):
 
     # Regular expression to find variable name candidates
     # - followed by a space and then an opening parenthesis (or no parenthesis)
-    # - or not followed by a parenthesis at all
+    # - or not followed by a parenthesis and symbol < at all
     #rx_var = re.compile(r'\b([_A-Za-z]\w*)\b(?!\s*\()')
-    rx_var = re.compile(r'\b([_A-Za-z]\w*)\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()')
+    rx_var = re.compile(r'\b([_A-Za-z]\w*)\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*[\(<])')
 
     # process function if not the header line and not a multi-line commented line
     if rx_comment.search(gadget) is None:
@@ -236,6 +401,7 @@ def clean_gadget(gadget):
         user_fun = rx_fun.findall(ascii_line)
         user_var = rx_var.findall(ascii_line)
         user_type = []
+
         # get_struct_class(parser.parse(bytes(ascii_line, 'utf8')).root_node, user_type)
         # for var_name in user_var:
         #     if var_name in user_type:
@@ -247,6 +413,11 @@ def clean_gadget(gadget):
         # So would only need to pass a string list and a string literal for symbol names to
         # another d2a.
         for fun_name in user_fun:
+            # Check if function name is uppercase (e.g., a macro or constant)
+            if fun_name.isupper():
+                # If it is, we can skip it as it is likely a macro or constant
+                continue
+
             if len({fun_name}.difference(main_set)) != 0 and len({fun_name}.difference(keywords)) != 0:
                 # DEBUG
                 #print('comparing ' + str(fun_name + ' to ' + str(main_set)))
@@ -256,7 +427,11 @@ def clean_gadget(gadget):
                 ###
                 # check to see if d2a name already in dictionary
                 if fun_name not in fun_symbols.keys():
-                    fun_symbols[fun_name] = 'FUN_' + str(fun_count)
+                    # Prepend return type to function name
+                    if fun_name in func_type:
+                        fun_symbols[fun_name] = func_type[fun_name] + '_func_' + str(fun_count)
+                    else:
+                        fun_symbols[fun_name] = 'func_' + str(fun_count)
                     fun_count += 1
                 # ensure that only d2a name gets replaced (no variable name with same
                 # identifier); uses positive lookforward
@@ -264,7 +439,7 @@ def clean_gadget(gadget):
 
         for type_name in user_type:
             if type_name not in type_symbols.keys():
-                type_symbols[type_name] = 'TYPE_' + str(type_count)
+                type_symbols[type_name] = 'type_' + str(type_count)
                 type_count += 1
             # Replace type names
             ascii_line = re.sub(r'\b(' + type_name + r')\b(?:(?=\s*\w+\()|(?!\s*\w+))(?!\s*\()', \
@@ -273,6 +448,11 @@ def clean_gadget(gadget):
         # print('Type symbols:', type_symbols)
 
         for var_name in user_var:
+            # Check if variable is uppercase (e.g., a macro or constant)
+            if var_name.isupper():
+                # If it is, we can skip it as it is likely a macro or constant
+                continue
+
             # next line is the nuanced difference between fun_name and var_name
             if len({var_name}.difference(keywords)) != 0 and len({var_name}.difference(main_args)) != 0 and var_name not in type_symbols.values():
                 # DEBUG
@@ -284,8 +464,12 @@ def clean_gadget(gadget):
                 # check to see if variable name already in dictionary
                 if var_name not in var_symbols.keys() and var_name not in user_type:
                     # print('Adding variable: ' + var_name)
-                    var_symbols[var_name] = 'VAR_' + str(var_count)
+                    if var_name in vars_type:
+                        var_symbols[var_name] = vars_type[var_name] + '_var' + str(var_count)
+                    else:
+                        var_symbols[var_name] = 'var_' + str(var_count)
                     var_count += 1
+                    # print('Variable symbols:', var_name)
                 else:
                     continue
 
@@ -333,29 +517,138 @@ class CXXNormalization:
         df['code'] = df['code'].apply(lambda x: self.normalization({'code': [x]})[0])
         print(df['code'][0])  # Print the first normalized code for debugging
         return df   
-    
+
+def is_leaf_node(node):
+    if not isinstance(node, tree_sitter.Tree):
+        return len(node.children) == 0
+    else:
+        return len(node.root_node.children) == 0
+
+def print_ast(node, level=0, text_tree=''):
+    if not node:
+        return
+    if isinstance(node, list):
+        for n in node:
+            print_ast(n, level, text_tree)
+        return
+    if not isinstance(node, tree_sitter.Tree):
+        children = node.children
+        name = node.type
+        token = ''
+        if is_leaf_node(node):
+            token = node.text
+            if type(token) is bytes:
+                token = token.decode('utf-8')
+    else:
+        children = node.root_node.children
+        name = node.root_node.type
+        token = ''
+        if is_leaf_node(node.root_node):
+            token = node.root_node.text.decode('utf-8')
+            # if node.root_node.type == "number_literal":
+            #     token = "<num
+
+    # if len(children) == 0:
+    #     return
+
+    # print(' ' * level + name)
+    print(' ' * level + name + ' ' + token + '\n')
+    text_tree = text_tree + ' ' * level + name + '\n'
+    for child in children:
+        print_ast(child, level + 1, text_tree)
+
 if __name__ == '__main__':
     gadget = """
-static void virtio_9p_device_unrealize(DeviceState *dev, Error **errp)
+void bad()
 {
-    VirtIODevice *vdev = VIRTIO_DEVICE(dev);
-
-    V9fsVirtioState *v = VIRTIO_9P(dev);
-
-    V9fsState *s = &v->state;
-
-    virtio_cleanup(vdev);
-
-    v9fs_device_unrealize_common(s, errp);
-}"""
+    char* data;
+    vector<char *> dataVector;
+    char dataBuffer[100] = "";
+    data = dataBuffer;
+    {
+        WSADATA wsaData;
+        BOOL wsaDataInit = FALSE;
+        SOCKET listenSocket = INVALID_SOCKET;
+        SOCKET acceptSocket = INVALID_SOCKET;
+        struct sockaddr_in service;
+        int recvResult;
+        do
+        {
+            if (WSAStartup(MAKEWORD(2,2), &wsaData) != NO_ERROR)
+            {
+                break;
+            }
+            wsaDataInit = 1;
+            listenSocket = socket(PF_INET, SOCK_STREAM, 0);
+            if (listenSocket == INVALID_SOCKET)
+            {
+                break;
+            }
+            memset(&service, 0, sizeof(service));
+            service.sin_family = AF_INET;
+            service.sin_addr.s_addr = INADDR_ANY;
+            service.sin_port = htons(LISTEN_PORT);
+            if (SOCKET_ERROR == bind(listenSocket, (struct sockaddr*)&service, sizeof(service)))
+            {
+                break;
+            }
+            if (SOCKET_ERROR == listen(listenSocket, LISTEN_BACKLOG))
+            {
+                break;
+            }
+            acceptSocket = accept(listenSocket, NULL, NULL);
+            if (acceptSocket == INVALID_SOCKET)
+            {
+                break;
+            }
+            /* INCIDENTAL CWE 188 - reliance on data memory layout
+             * recv and friends return "number of bytes" received
+             * char's on our system, however, may not be "octets" (8-bit
+             * bytes) but could be just about anything.  Also,
+             * even if the external environment is ASCII or UTF8,
+             * the ANSI/ISO C standard does not dictate that the
+             * character set used by the actual language or character
+             * constants matches.
+             *
+             * In practice none of these are usually issues...
+             */
+            /* FLAW: read the new hostname from a network socket */
+            recvResult = recv(acceptSocket, data, 100 - 1, 0);
+            if (recvResult == SOCKET_ERROR || recvResult == 0)
+            {
+                break;
+            }
+            data[recvResult] = '\0';
+        }
+        while (0);
+        if (acceptSocket != INVALID_SOCKET)
+        {
+            closesocket(acceptSocket);
+        }
+        if (listenSocket != INVALID_SOCKET)
+        {
+            closesocket(listenSocket);
+        }
+        if (wsaDataInit)
+        {
+            WSACleanup();
+        }
+        }"""
 
     normalizer = CXXNormalization()
     nor_code = normalizer.normalization(gadget)
     print(nor_code)
 
-    # tree = parser.parse(gadget.encode('utf-8').decode('unicode_escape').encode())
+    tree = parser.parse(gadget.encode('utf-8').decode('unicode_escape').encode())
     # print_ast(tree)
+
+    # functions = dict()
+    # get_function_type(tree.root_node, functions)
+    # print("Functions found:", functions)
 
     # types = []
     # get_struct_class(tree.root_node, types)
     # print("Types found:", types)
+    # vars_type = dict()
+    # get_variable_type(tree.root_node, vars_type)
+    # print("Variable types found:", vars_type)
