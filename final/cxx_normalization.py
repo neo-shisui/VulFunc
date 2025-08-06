@@ -189,7 +189,7 @@ def get_struct_class(node, types: list):
         # Recursively call the function for each child
         get_struct_class(child, types)
 
-def get_function_type(node, functions: dict):
+def get_function_type(node, functions: dict, variables: dict):
     if node.type == 'function_definition':
         function_signature = node.text.decode('utf8').split('(')[0].strip()  # Get the function signature before the parameters
         # print('Function Signature: ', function_signature)
@@ -199,10 +199,18 @@ def get_function_type(node, functions: dict):
         # print('Function Name: ', function_name, ' Return Type: ', return_type)
         if function_name not in functions:
             functions[function_name] = return_type
-    else:
-        # Recursively traverse the children of the node
-        for child in node.children:
-            get_function_type(child, functions)
+    elif node.type == 'assignment_expression' and b'(' in node.text:  # Check if the node is an assignment expression with a function call
+        expression = node.text.decode('utf8')
+        var_expr = expression.split('=')[0].strip()  # Get the variable expression before the assignment
+        func_expr = expression.split('=')[1].split('(')[0].strip()  # Get the function expression after the assignment
+        if var_expr in variables:
+            functions[func_expr] = variables[var_expr]  # Use the variable type as the function type
+
+    # Recursively traverse the children of the node
+    # print(node.type, node.text)
+    # print('')
+    for child in node.children:
+        get_function_type(child, functions, variables)
 
 def get_variable_type(node, variables: dict):
     if node.type == 'declaration':
@@ -353,7 +361,7 @@ def clean_gadget(gadget):
     # print('Variable types:', vars_type)
 
     func_type = dict()
-    get_function_type(tree.root_node, func_type)
+    get_function_type(tree.root_node, func_type, vars_type)
     # print('Function types:', func_type)
 
     fun_count = 1
@@ -429,10 +437,10 @@ def clean_gadget(gadget):
                 if fun_name not in fun_symbols.keys():
                     # Prepend return type to function name
                     if fun_name in func_type:
-                        fun_symbols[fun_name] = func_type[fun_name] + '_func_' + str(fun_count)
+                        fun_symbols[fun_name] = 'func_' + func_type[fun_name] # + str(fun_count)
                     else:
-                        fun_symbols[fun_name] = 'func_' + str(fun_count)
-                    fun_count += 1
+                        fun_symbols[fun_name] = 'func_unk' #'func_' + str(fun_count)
+                    # fun_count += 1
                 # ensure that only d2a name gets replaced (no variable name with same
                 # identifier); uses positive lookforward
                 ascii_line = re.sub(r'\b(' + fun_name + r')\b(?=\s*\()', fun_symbols[fun_name], ascii_line)
@@ -465,9 +473,9 @@ def clean_gadget(gadget):
                 if var_name not in var_symbols.keys() and var_name not in user_type:
                     # print('Adding variable: ' + var_name)
                     if var_name in vars_type:
-                        var_symbols[var_name] = vars_type[var_name] + '_var' + str(var_count)
+                        var_symbols[var_name] = 'var_' + vars_type[var_name] #+ str(var_count)
                     else:
-                        var_symbols[var_name] = 'var_' + str(var_count)
+                        var_symbols[var_name] = 'var_unk' # + str(var_count)
                     var_count += 1
                     # print('Variable symbols:', var_name)
                 else:
@@ -561,6 +569,7 @@ if __name__ == '__main__':
     gadget = """
 void bad()
 {
+    char x[] = "Hello, World!";
     char* data;
     vector<char *> dataVector;
     char dataBuffer[100] = "";
@@ -642,13 +651,15 @@ void bad()
     tree = parser.parse(gadget.encode('utf-8').decode('unicode_escape').encode())
     # print_ast(tree)
 
-    # functions = dict()
-    # get_function_type(tree.root_node, functions)
+    vars_type = dict()
+    get_variable_type(tree.root_node, vars_type)
+    # print("Variable types found:", vars_type)
+
+    functions = dict()
+    get_function_type(tree.root_node, functions, vars_type)
     # print("Functions found:", functions)
 
     # types = []
     # get_struct_class(tree.root_node, types)
     # print("Types found:", types)
-    # vars_type = dict()
-    # get_variable_type(tree.root_node, vars_type)
-    # print("Variable types found:", vars_type)
+    #

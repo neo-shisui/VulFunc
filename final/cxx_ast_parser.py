@@ -1,6 +1,6 @@
+import sys
 import json
 import argparse
-import sys
 import tree_sitter
 
 from cxx_function_parser import CXXFunctionParser
@@ -111,9 +111,6 @@ class ASTNode(object):
     def get_children(self):
         return self.children
 
-def get_float_bytes(is_float):
-    return 4 if is_float else 8  # float: 4 bytes, double: 8 bytes
-
 def get_int_bytes(x):
     x = abs(x)
     if x <= 127:
@@ -139,10 +136,15 @@ class SingleNode(ASTNode):
 
     def get_token(self, lower=True):
         if not isinstance(self.node, tree_sitter.Tree):
-            token = self.node.type
+            token = None # self.node.type
+            # print("AAA")
             if self.is_leaf:
                 token = self.node.text.decode('utf-8')
-                if self.node.type == "number_literal":
+                # print(token)
+                # Skip unknown tokens
+                if ' ' in token or len(token) >= 50:
+                    token = None
+                elif self.node.type == "number_literal":
                     # if float
                     if '.' in token:
                         token = "<float>"
@@ -158,6 +160,7 @@ class SingleNode(ASTNode):
                             token = "<num>"
             return token
         else:
+            # print("BBB")
             token = self.node.root_node.type
             if self.is_leaf:
                 token = self.node.root_node.text.decode('utf-8')
@@ -210,7 +213,11 @@ def get_sequences(node, sequence: list):
     if name == 'comment':
         return
     else:
-        sequence.append(current.get_token())
+        token = current.get_token()
+        if token is not None:
+            sequence.append(current.get_token())
+        # else:
+        #     return
 
     if not isinstance(node, tree_sitter.Tree):
         for child in node.children:
@@ -218,7 +225,7 @@ def get_sequences(node, sequence: list):
     else:
         for child in node.root_node.children:
             get_sequences(child, sequence)
-    if current.get_token().lower() == 'compound_statement':
+    if token is not None and token.lower() == 'compound_statement':
         sequence.append('End')
 
 if __name__ == '__main__':
@@ -268,6 +275,7 @@ if __name__ == '__main__':
 
         sequences = []
         get_sequences(tree, sequences)
+        print(sequences)
         # Write as array to a file
         with open('token_sequences.txt', 'a') as f:
             f.write(json.dumps(sequences) + '\n')

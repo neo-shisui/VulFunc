@@ -17,7 +17,12 @@ def get_sequences(node, sequence: list):
     if name == 'comment':
         return
     else:
-        sequence.append(current.get_token())
+        # sequence.append(current.get_token())
+        token = current.get_token()
+        if token is not None:
+            sequence.append(token)
+        else:
+            return
 
     if not isinstance(node, tree_sitter.Tree):
         for child in node.children:
@@ -25,7 +30,7 @@ def get_sequences(node, sequence: list):
     else:
         for child in node.root_node.children:
             get_sequences(child, sequence)
-    if current.get_token().lower() == 'compound_statement':
+    if token is not None and token.lower() == 'compound_statement':
         sequence.append('End')
 
 def get_root_paths(node, sequences: list, cur_path: list):

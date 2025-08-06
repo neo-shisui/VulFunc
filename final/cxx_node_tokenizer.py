@@ -25,7 +25,11 @@ class CXXNodeTokenizer:
             return []
 
         # Parse the source code into an AST
-        tree = self.parser.parse(source.encode('utf-8').decode('unicode_escape').encode())
+        try:
+            tree = self.parser.parse(source.encode('utf-8').decode('unicode_escape').encode())
+        except Exception as e:
+            print(f"Error parsing source code: {e}")
+            return []
 
         # Convert the AST to a sequence of tokens
         sequences = []

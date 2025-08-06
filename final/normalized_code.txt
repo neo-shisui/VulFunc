@@ -1138,3 +1138,1557 @@ func_2();
 func_3();
 }
 
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+
+void func_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+{
+WSADATA var_WSADATA;
+BOOL var_BOOL = FALSE;
+SOCKET var_SOCKET = INVALID_SOCKET;
+SOCKET var_SOCKET = INVALID_SOCKET;
+struct sockaddr_in var_struct_sockaddr_in;
+int var_int;
+do
+{
+if (WSAStartup(MAKEWORD(2,2), &var_WSADATA) != NO_ERROR)
+{
+break;
+}
+var_BOOL = 1;
+var_SOCKET = socket(PF_INET, SOCK_STREAM, 0);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+memset(&var_struct_sockaddr_in, 0, sizeof(var_struct_sockaddr_in));
+var_struct_sockaddr_in.var_unk = AF_INET;
+var_struct_sockaddr_in.var_unk.var_unk = INADDR_ANY;
+var_struct_sockaddr_in.var_unk = func_unk(LISTEN_PORT);
+if (SOCKET_ERROR == func_unk(var_SOCKET, (struct var_unk*)&var_struct_sockaddr_in, sizeof(var_struct_sockaddr_in)))
+{
+break;
+}
+if (SOCKET_ERROR == func_unk(var_SOCKET, LISTEN_BACKLOG))
+{
+break;
+}
+var_SOCKET = func_SOCKET(var_SOCKET, NULL, NULL);
+if (var_SOCKET == INVALID_SOCKET)
+{
+break;
+}
+var_int = recv(var_SOCKET, var_char_ptr, 100 - 1, 0);
+if (var_int == SOCKET_ERROR || var_int == 0)
+{
+break;
+}
+var_char_ptr[var_int] = '';
+}
+while (0);
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_SOCKET != INVALID_SOCKET)
+{
+func_unk(var_SOCKET);
+}
+if (var_BOOL)
+{
+WSACleanup();
+}
+}
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5!=5)
+{
+func_unk("");
+}
+else
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+static void func_static_void()
+{
+char * var_char_ptr;
+char var_char_array[100] = "";
+var_char_ptr = var_char_array;
+if(5==5)
+{
+strcpy(var_char_ptr, "");
+}
+if (!func_unk(var_char_ptr))
+{
+func_unk("");
+func_unk(1);
+}
+}
+
+void func_void()
+{
+func_unk();
+func_unk();
+}
+

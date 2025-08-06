@@ -1,93 +1,105 @@
-# Credit:
-# * https://medium.com/@devmallyakarar/transformers-self-attention-mechanism-from-scratch-using-pytorch-affee86f9ba9
-
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.optim as optim
+from tqdm import tqdm
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-class SelfAttention(nn.Module):
-    def __init__(self, embed_size, heads):
-        super(SelfAttention, self).__init__()
-        self.embed_size = embed_size
-        self.heads = heads
-        self.head_dim = embed_size // heads
-        
-        assert (
-            self.head_dim * heads == embed_size
-        ), "Embedding size needs to be divisible by heads"
-        
-        self.values = nn.Linear(self.head_dim, self.head_dim, bias=False)
-        self.keys = nn.Linear(self.head_dim, self.head_dim, bias=False)
-        self.queries = nn.Linear(self.head_dim, self.head_dim, bias=False)
-        self.fc_out = nn.Linear(heads * self.head_dim, embed_size)
-
-    def forward(self, values, keys, query, mask):
-        N = query.shape[0]  # Number of sequences (batch size)
-        value_len, key_len, query_len = values.shape[1], keys.shape[1], query.shape[1]
-        
-        # Split the embedding into self.heads different pieces
-        values = values.reshape(N, value_len, self.heads, self.head_dim)
-        keys = keys.reshape(N, key_len, self.heads, self.head_dim)
-        queries = query.reshape(N, query_len, self.heads, self.head_dim)
-        
-        values = self.values(values)
-        keys = self.keys(keys)
-        queries = self.queries(queries)
-        
-        # Dot product attention
-        energy = torch.einsum("nqhd,nkhd->nhqk", [queries, keys])
-        
-        if mask is not None:
-            energy = energy.masked_fill(mask == 0, float("-1e20"))
-        
-        # Scaled dot-product attention
-        attention = torch.softmax(energy / (self.embed_size ** (1 / 2)), dim=3)
-        
-        out = torch.einsum("nhql,nlhd->nqhd", [attention, values]).reshape(
-            N, query_len, self.heads * self.head_dim
-        )
-        
-        out = self.fc_out(out)
-        
-        return out
-
-# Transformer Model incorporating SelfAttention
-class TransformerModel(nn.Module):
-    def __init__(self, vocab_size, embed_size, heads, num_layers, dropout=0.1):
-        super(TransformerModel, self).__init__()
-        self.embedding = nn.Embedding(vocab_size, embed_size)
-        self.attention = SelfAttention(embed_size, heads)
-        self.layers = nn.ModuleList([
-            nn.Sequential(
-                nn.LayerNorm(embed_size),
-                SelfAttention(embed_size, heads),
-                nn.Dropout(dropout),
-                nn.Linear(embed_size, embed_size),
-                nn.ReLU(),
-                nn.LayerNorm(embed_size)
-            ) for _ in range(num_layers)
-        ])
-        self.fc_out = nn.Linear(embed_size, vocab_size)
+class SelfAttentionModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_classes, dropout=0.2):
+        super(SelfAttentionModel, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.hidden_dim = hidden_dim
         self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x, mask=None):
-        x = self.embedding(x)
-        for layer in self.layers:
-            x = layer(x)
-        out = self.fc_out(x)
+        
+        # Attention parameters
+        self.query = nn.Linear(embedding_dim, hidden_dim)
+        self.key = nn.Linear(embedding_dim, hidden_dim)
+        self.value = nn.Linear(embedding_dim, hidden_dim)
+        self.scale = torch.sqrt(torch.tensor(hidden_dim, dtype=torch.float32))
+        
+        # Output layer
+        self.fc = nn.Linear(hidden_dim, num_classes)
+        
+    def forward(self, x):
+        # x shape: (batch_size, seq_length)
+        embedded = self.embedding(x)
+        # embedded shape: (batch_size, seq_length, embedding_dim)
+        
+        # Compute query, key, value
+        Q = self.query(embedded)  # (batch_size, seq_length, hidden_dim)
+        K = self.key(embedded)    # (batch_size, seq_length, hidden_dim)
+        V = self.value(embedded)  # (batch_size, seq_length, hidden_dim)
+        
+        # Compute attention scores
+        attention_scores = torch.bmm(Q, K.transpose(1, 2)) / self.scale
+        # attention_scores shape: (batch_size, seq_length, seq_length)
+        
+        # Apply softmax to get attention weights
+        attention_weights = torch.nn.functional.softmax(attention_scores, dim=-1)
+        # attention_weights shape: (batch_size, seq_length, seq_length)
+        
+        # Apply attention weights to values
+        attention_output = torch.bmm(attention_weights, V)
+        # attention_output shape: (batch_size, seq_length, hidden_dim)
+        
+        # Pool the output (using mean pooling across sequence length)
+        pooled_output = torch.mean(attention_output, dim=1)
+        # pooled_output shape: (batch_size, hidden_dim)
+        
+        # Apply dropout
+        out = self.dropout(pooled_output)
+        
+        # Final linear layer
+        out = self.fc(out)
+        # out shape: (batch_size, num_classes)
+        
         return out
 
-# Example usage
-if __name__ == "__main__":
-    embed_size = 256
-    heads = 8
-    seq_length = 10
-    x = torch.rand((1, seq_length, embed_size))  # Example input
+def train_selfattention(model, train_loader, optimizer, scheduler, epochs, device, criterion):
+    model.train()
+    scaler = torch.amp.GradScaler('cuda')  # For mixed precision training
 
-    self_attention = SelfAttention(embed_size, heads)
-    out = self_attention(x, x, x, mask=None)
-    print(out.shape)  # Output shape should be [1, seq_length, embed_size]
+    history = {"loss": [], "accuracy": []}
+
+    for epoch in range(epochs):
+        total_loss = 0
+        correct = 0
+        total = 0
+        progress_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{epochs}')
+
+        for batch_idx, (inputs, targets) in enumerate(progress_bar):
+            inputs, targets = inputs.to(device), targets.to(device)
+
+            # Forward pass with mixed precision
+            optimizer.zero_grad()
+            with torch.amp.autocast('cuda'):
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+
+            # Backward pass and optimize with gradient scaling
+            scaler.scale(loss).backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            scaler.step(optimizer)
+            scaler.update()
+
+            # Track statistics
+            total_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += targets.size(0)
+            correct += predicted.eq(targets).sum().item()
+
+            # Update progress bar
+            avg_loss = total_loss / (batch_idx + 1)
+            accuracy = 100. * correct / total
+            progress_bar.set_postfix({
+                'loss': f'{avg_loss:.4f}',
+                'acc': f'{accuracy:.2f}%'
+            })
+
+        # Update learning rate based on scheduler
+        scheduler.step()
+
+        print(f'Epoch {epoch+1}/{epochs} - Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%')
+        history["loss"].append(avg_loss)
+        history["accuracy"].append(accuracy)
+
+    return model, history

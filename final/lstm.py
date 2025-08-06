@@ -1,27 +1,15 @@
 # https://medium.com/@wangdk93/lstm-from-scratch-c8b4baf06a8b
 
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
-
-def pre_pad_sequences_pytorch(sequences, max_len, padding_token='0'):
-    padded_sequences = []
-    
-    for seq in sequences:
-        # If the sequence is shorter than max_len, pad with zeros at the beginning
-        if len(seq) < max_len:
-            padded_seq = seq + [padding_token] * (max_len - len(seq))  # Pre-padding with 0
-        # If the sequence is longer than max_len, truncate it
-        else:
-            padded_seq = seq[-max_len:]  
-        padded_sequences.append(padded_seq)
-    
-    return torch.tensor(padded_sequences)
 
 # Define the LSTM model with optimizations
 class LSTMModel(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_dim, num_layers, num_classes, dropout=0.2):
         super(LSTMModel, self).__init__()
+        # Define Embedding layer
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, 
                             hidden_dim, 
@@ -32,17 +20,19 @@ class LSTMModel(nn.Module):
         self.fc = nn.Linear(hidden_dim, num_classes)
     
     def forward(self, x):
-        # x: (batch_size, seq_len)
-        x = self.embedding(x)
-        # x: (batch_size, seq_len, embedding_dim)
-        x, (h_n, c_n) = self.lstm(x)
-        # x: (batch_size, seq_len, hidden_dim)
-        x = self.dropout(h_n[-1])  # Last layer's hidden state 
+        # x       : (batch_size, seq_len)
+        # embedded: (batch_size, seq_len, embedding_dim)
+        embedded = self.embedding(x)
+
+        packed_output, (h_n, c_n) = self.lstm(embedded)
+
+        # x = self.dropout(h_n[-1])  # Last layer's hidden state 
+        out = self.dropout(packed_output[:, -1, :])  # Use last time step's output
         # self.dropout(x[:, -1, :])  # Use the last hidden state
         # x: (batch_size, hidden_dim)
-        x = self.fc(x)
+        out = self.fc(out)
         # x: (batch_size, num_classes)
-        return x
+        return out
 
 # Training function
 def train_lstm(model, train_loader, test_loader, criterion, optimizer, num_epochs, device, num_classes=2):
@@ -69,6 +59,15 @@ def train_lstm(model, train_loader, test_loader, criterion, optimizer, num_epoch
         epoch_loss = running_loss / len(train_loader.dataset)
         train_losses.append(epoch_loss)
 
+        # Print predict output (1 or 0) and labels for debugging
+        # print(f'Epoch {epoch+1}/{num_epochs}, Train Loss: {epoch_loss:.4f}')
+        # print("Sample Outputs:", outputs[:5])  # Print first 5 outputs
+        # print("Sample Labels:", labels[:5])
+
+        print("Raw logits:", outputs[:5])  # Should show varying values for both classes
+        print("Predicted classes:", torch.max(outputs, 1)[1][:5])  # Should show both 0 and 1
+        print("True labels:", labels[:5])  # Should show both 0 and 1
+
         # Evaluation phase
         model.eval()
         test_loss = 0.0
@@ -77,7 +76,7 @@ def train_lstm(model, train_loader, test_loader, criterion, optimizer, num_epoch
             for inputs, labels in test_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
                 outputs = model(inputs)
-                print(outputs)
+                # print(outputs)
                 loss = criterion(outputs, labels)
                 test_loss += loss.item() * inputs.size(0)
                 _, predicted = torch.max(outputs, 1)
@@ -140,6 +139,129 @@ def lstm_plot_metrics(train_losses, test_losses, test_accuracies, test_precision
 
     plt.tight_layout()
     plt.savefig('lstm.png')  # Save the plot (replace 'plt.save()' with correct syntax)
+    plt.show()
+
+# Define the BiLSTM model with optimizations
+class BiLSTMModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_layers, num_classes, dropout=0.2):
+        super(BiLSTMModel, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.lstm = nn.LSTM(embedding_dim, 
+                           hidden_dim, 
+                           num_layers=num_layers, 
+                           bidirectional=True, 
+                           batch_first=True, 
+                           dropout=dropout if num_layers > 1 else 0)
+        self.dropout = nn.Dropout(dropout)
+        # Multiply by 2 for bidirectional
+        self.fc = nn.Linear(hidden_dim * 2, num_classes)
+        
+    def forward(self, x):
+        # x shape: (batch_size, seq_length)
+        embedded = self.embedding(x)
+        # embedded shape: (batch_size, seq_length, embedding_dim)
+        
+        # Pack padded sequence for faster processing
+        # This helps with variable length sequences
+        packed_output, (hidden, cell) = self.lstm(embedded)
+        
+        # Use the concatenated hidden state from the last layer
+        # Get the last hidden state of both directions
+        hidden_forward = hidden[-2, :, :]
+        hidden_backward = hidden[-1, :, :]
+        hidden_cat = torch.cat((hidden_forward, hidden_backward), dim=1)
+        
+        # Apply dropout
+        out = self.dropout(hidden_cat)
+        
+        # Linear layer
+        out = self.fc(out)
+        # out shape: (batch_size, num_classes)
+        
+        return out
+    
+def train_bilstm(model, train_loader, optimizer, scheduler, epochs, device, criterion):
+    model.train()
+    scaler = torch.amp.GradScaler('cuda')  # For mixed precision training
+
+    for epoch in range(epochs):
+        total_loss = 0
+        correct = 0
+        total = 0
+        history = {"loss": [], "accuracy": []}  # Thêm dòng này
+
+        progress_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{epochs}')
+
+        for batch_idx, (inputs, targets) in enumerate(progress_bar):
+            inputs, targets = inputs.to(device), targets.to(device)
+
+            # Forward pass with mixed precision
+            optimizer.zero_grad()
+            with torch.amp.autocast('cuda'):
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+
+            # Backward pass and optimize with gradient scaling
+            scaler.scale(loss).backward()
+            # Gradient clipping to prevent exploding gradients
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            scaler.step(optimizer)
+            scaler.update()
+
+            # Track statistics
+            total_loss += loss.item()
+            _, predicted = outputs.max(1)
+            total += targets.size(0)
+            correct += predicted.eq(targets).sum().item()
+
+            # Update progress bar
+            avg_loss = total_loss / (batch_idx + 1)
+            accuracy = 100. * correct / total
+            progress_bar.set_postfix({
+                'loss': f'{avg_loss:.4f}',
+                'acc': f'{accuracy:.2f}%'
+            })
+
+        # Update learning rate based on scheduler
+        scheduler.step()
+
+        print(f'Epoch {epoch+1}/{epochs} - Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%')
+
+        # logger.info(
+        #     f'Epoch {epoch+1}/{epochs} - Loss: {avg_loss:.4f}, Accuracy: {accuracy:.2f}%')
+        history["loss"].append(avg_loss)
+        history["accuracy"].append(accuracy)
+
+
+    return model, history
+
+# Function to plot training metrics
+def bilstm_plot_metrics(train_losses, test_losses, test_accuracies, test_precisions, test_recalls, test_f1s):
+    epochs = range(1, len(train_losses) + 1)
+    plt.figure(figsize=(12, 8))
+
+    # Plot losses
+    plt.subplot(2, 1, 1)
+    plt.plot(epochs, train_losses, 'b-', label='Train Loss')
+    plt.plot(epochs, test_losses, 'r-', label='Test Loss')
+    plt.title('Training and Test Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    # Plot test metrics
+    plt.subplot(2, 1, 2)
+    plt.plot(epochs, test_accuracies, 'g-', label='Test Accuracy')
+    plt.plot(epochs, test_precisions, 'm-', label='Test Precision')
+    plt.plot(epochs, test_recalls, 'c-', label='Test Recall')
+    plt.plot(epochs, test_f1s, 'y-', label='Test F1')
+    plt.title('Test Metrics')
+    plt.xlabel('Epochs')
+    plt.ylabel('Score')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig('bilstm_metrics.png')
     plt.show()
 
 # Example usage

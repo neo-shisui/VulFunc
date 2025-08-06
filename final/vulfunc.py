@@ -24,7 +24,13 @@ from cxx_normalization import CXXNormalization
 from cxx_token_embedding import CXXTokenEmbedding
 from lstm import LSTMModel, train_lstm, lstm_plot_metrics
 from cxx_ast_traversal import get_root_paths, get_sequences
-from selfattention import SelfAttention, TransformerModel
+# from selfattention import SelfAttention, TransformerModel
+
+# Models
+from rnn import RNNModel, train_rnn, rnn_plot_metrics
+from MLModel import train_decision_tree, decision_tree_plot_metrics
+from lstm import BiLSTMModel, train_bilstm
+from selfattention import SelfAttentionModel, train_selfattention
 
 # Configurations
 DATASET_PATH = [
@@ -33,7 +39,7 @@ DATASET_PATH = [
     '../datasets/BigVul/bigvul.json',
 ]
 
-VOCAB_PATH = 'CXX_AST_DATA/vocab/vocab.json'
+VOCAB_PATH = 'CXX_AST_DATA/vocab/vocab_index2.json' # vocab.json'
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='vulfunc.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -227,31 +233,38 @@ def generate_vocab():
 
     # Get code columns
     devign_dataset = pd.DataFrame(devign_dataset)
-    sard_dataset = pd.DataFrame(sard_dataset)
-    bigvul_dataset = pd.DataFrame(bigvul_dataset)
+    # sard_dataset = pd.DataFrame(sard_dataset)
+    # bigvul_dataset = pd.DataFrame(bigvul_dataset)
     
     # Check if 'code' column exists
     if 'code' not in devign_dataset.columns:
         raise ValueError("The 'code' column is missing from the Devign dataset.")
 
-    # Check if 'code' column exists
-    if 'code' not in sard_dataset.columns:
-        raise ValueError("The 'code' column is missing from the SARD dataset.")
+    # # Check if 'code' column exists
+    # if 'code' not in sard_dataset.columns:
+    #     raise ValueError("The 'code' column is missing from the SARD dataset.")
 
-    # Using column func_before as code for BigVul dataset
-    if 'func_before' not in bigvul_dataset.columns:
-        raise ValueError("The 'func_before' column is missing from the BigVul dataset.")
+    # # Using column func_before as code for BigVul dataset
+    # if 'func_before' not in bigvul_dataset.columns:
+    #     raise ValueError("The 'func_before' column is missing from the BigVul dataset.")
 
     df1_code = devign_dataset[['code']].copy()
-    df2_code = sard_dataset[['code']].copy()
-    df3_code = bigvul_dataset[['func_before']].copy()
-    
-    # Rename columns to 'code' for consistency
-    df3_code.rename(columns={'func_before': 'code'}, inplace=True)
+    # df2_code = sard_dataset[['code']].copy()
+    # df3_code = bigvul_dataset[['func_before']].copy()
 
-    # Concatenate the DataFrames
-    dataset = pd.concat([df3_code, df2_code, df1_code], ignore_index=True)
+    df1_target = devign_dataset[['target']].copy()
+    # df2_target = sard_dataset[['target']].copy()
+    # df3_target = bigvul_dataset[['target']].copy()
     
+    # # Rename columns to 'code' for consistency
+    # df3_code.rename(columns={'func_before': 'code'}, inplace=True)
+
+    # Concatenate the DataFrames  df3_code, df2_code, 
+    dataset = pd.concat([df1_code], ignore_index=True)
+
+    # df3_target, df2_target, 
+    labels = pd.concat([df1_target], ignore_index=True)
+
     # Initialize the tokenizer and vocabulary manager
     normalizer = CXXNormalization()
     tokenizer = CXXNodeTokenizer()
@@ -261,16 +274,30 @@ def generate_vocab():
     dataset['code'] = dataset['code'].apply(lambda x: normalizer.normalization(x))
 
     # Drop None values in 'code' column
-    dataset.dropna(subset=['code'], inplace=True)
+    # dataset.dropna(subset=['code'], inplace=True)
     # dataset['code'].dropna(inplace=True)  # Drop any rows with NaN in 'code'
 
     # Tokenize the code and update the vocabulary
     tokens_lists = dataset['code'].apply(lambda x: tokenizer.tokenize_source(x)).tolist()
     vocab_mgr.update_vocab(tokens_lists)
     
+    # Save token raws as vector to a file
+    with open('CXX_AST_DATA/token_vectors2.txt', 'w', encoding='utf-8') as f:
+        json.dump(tokens_lists, f, indent=4, ensure_ascii=False)
+
+    # json_labels = 
+    # Ensure 'target' column is integer type
+    labels['target'] = labels['target'].astype(int)
+
+    # Save to JSON file as a single array
+    labels.to_json('CXX_AST_DATA/labels2.json', orient='records', lines=False, indent=4)
+    # with open('CXX_AST_DATA/labels.json', 'w', encoding='utf-8') as f:
+    #     json.dump(, f, indent=4, ensure_ascii=False)
+
     # Save the vocabulary to files
-    vocab_mgr.save_vocab()
-    logger.info("Vocabulary saved to vocab.json")
+    vocab_mgr.save_vocab(index_filepath='vocab_index2.json',
+                         freq_filepath='vocab_freq2.json')
+    logger.info("[*] Vocabulary saved to vocab.json")
 
 def train(dataset=DATASET_PATH[0], model="lstm"):
     # Read vocabulary from file
@@ -281,14 +308,22 @@ def train(dataset=DATASET_PATH[0], model="lstm"):
     logger.info(f"Vocabulary size: {vocab_size}")
     
     # Load the training dataset
-    train = pd.read_pickle(dataset)
+    # train = pd.read_json(dataset, orient='records', lines=True)
+    train = load_json_file(dataset)
+    # train = pd.read_pickle(dataset)
+
+    # Convert to DataFrame
+    if isinstance(train, dict):
+        train = pd.DataFrame.from_dict(train, orient='index')
+    elif isinstance(train, list):
+        train = pd.DataFrame(train)
 
     # Get only 10% sample
     # Define the target column name (adjust if different)
     target_column = 'target'
 
     # Extract a 10% balanced subset
-    subset_size = 0.01  # 10% of the dataset
+    subset_size = 1  # 10% of the dataset
     train = train.groupby(target_column).sample(frac=subset_size, random_state=None)
 
     # Normalize source code
@@ -298,6 +333,8 @@ def train(dataset=DATASET_PATH[0], model="lstm"):
     # Tokenize
     tokenizer = CXXNodeTokenizer()
     train['tokens'] = train['code'].apply(lambda x: tokenizer.tokenize_source(x))
+
+    print("Example tokens:", train['tokens'].iloc[0])  # Debugging output
 
     # Count Length Token
     # Calculate token lengths (number of tokens per row)
@@ -317,12 +354,12 @@ def train(dataset=DATASET_PATH[0], model="lstm"):
     print(f"Average length: {average_length:.2f}")
 
     # Convert the code to AST
-    train['code'] = train['code'].apply(lambda x: parse_ast(x))
+    # train['code'] = train['code'].apply(lambda x: parse_ast(x))
 
-    # Tokenize the code
-    tokenizer = CXXNodeTokenizer()
-    train['tokens'] = train['code'].apply(lambda x: tokenizer.tokenize(x))
-    logger.info(f"Number of training samples: {len(train)}")
+    # # Tokenize the code
+    # tokenizer = CXXNodeTokenizer()
+    # train['tokens'] = train['code'].apply(lambda x: tokenizer.tokenize(x))
+    # logger.info(f"Number of training samples: {len(train)}")
 
     # Convert tokens to indices
     labels = train['target']
@@ -334,27 +371,18 @@ def train(dataset=DATASET_PATH[0], model="lstm"):
     train_loader, test_loader = prepare_data(
         train['tokens'], labels, vocab, max_len=maxlen, batch_size=128)
 
-    # Train models
-    embed_size = 128    
-    heads = 8
-    num_layers = 2
-    # model = TransformerModel(vocab_size=vocab_size, embed_size=128, heads=8, num_layers=num_layers)
-    # train_model(model, train_loader, epochs=2)
+    # Model selection
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # LSTM
     if model == "lstm":
-        embedding_dim = 256
-        hidden_dim = 256
-        num_layers = 2
-        num_classes = 2  # Binary classification
-        dropout = 0.2
         batch_size = 32
         num_epochs = 10
         learning_rate = 0.001
 
         # Initialize model, loss function, and optimizer
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model = LSTMModel(vocab_size, embedding_dim, hidden_dim, num_layers, num_classes, dropout).to(device)
+        model = LSTMModel(vocab_size=vocab_size, embedding_dim=256, 
+                          hidden_dim=256, num_layers=2, num_classes=2, dropout=0.1).to(device)
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -376,9 +404,75 @@ def train(dataset=DATASET_PATH[0], model="lstm"):
         # # Train the model
         # model = LSTMModel(vocab_size, embedding_dim, hidden_dim=256, num_layers=2, num_classes=2)
         # logger.info("LSTM model initialized.")
+    elif model == "rnn":
+        embedding_dim = 256
+        hidden_dim = 256
+        num_layers = 2
+        num_classes = 2  # Binary classification
+        dropout = 0.2
+        batch_size = 32
+        num_epochs = 10
+        learning_rate = 0.001
+        
+        # Initialize model, loss function, and optimizer
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        model = RNNModel(vocab_size, embedding_dim, hidden_dim, num_layers, num_classes, dropout).to(device)
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        # Train the model
+        train_losses, test_losses, test_accuracies, test_precisions, test_recalls, test_f1s = train_rnn(model, train_loader, test_loader, criterion, optimizer, num_epochs, device, num_classes)
+
+        # Plot the results
+        rnn_plot_metrics(train_losses, test_losses, test_accuracies, test_precisions, test_recalls, test_f1s)
+    elif model == "decision_tree":
+        from sklearn.tree import DecisionTreeClassifier
+        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+        # Initialize model
+        model = DecisionTreeClassifier(max_depth=5, random_state=42)
+
+        # Split data
+        X_train, X_test, y_train, y_test = train_test_split(train['tokens'].tolist(), labels, test_size=0.2, random_state=42)
 
 
+        # Train a Decision Tree model
+        train_accuracies, test_accuracies, test_precisions, test_recalls, test_f1s = train_decision_tree(
+            model, X_train, y_train, X_test, y_test, num_epochs=10)
+        
+        # Plot the results
+        decision_tree_plot_metrics(train_accuracies, test_accuracies, test_precisions, test_recalls, test_f1s)
+    elif model == "bilstm":
+        logger.info("Training BiLSTM model...")
+        bilstm_model = BiLSTMModel(
+            vocab_size=vocab_size, embedding_dim=128, hidden_dim=128, num_layers=2, num_classes=2, dropout=0.1
+        ).to(device)
+        bilstm_optimizer = optim.AdamW(
+            bilstm_model.parameters(), lr=1e-4, weight_decay=1e-5)
+        bilstm_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            bilstm_optimizer, T_0=5, T_mult=1, eta_min=1e-5)
+        bilstm_criterion = nn.CrossEntropyLoss()
+        bilstm_model, history_bilstm= train_bilstm(
+            bilstm_model, train_loader, bilstm_optimizer, bilstm_scheduler,
+            epochs=15, device=device, criterion=bilstm_criterion
+        )
+    elif model == "selfattention":
+        logger.info("Training Self-Attention model...")
+        attention_model = SelfAttentionModel(
+            vocab_size=vocab_size, embedding_dim=128, hidden_dim=128, num_classes=2, dropout=0.1
+        ).to(device)
+        attention_optimizer = optim.AdamW(
+            attention_model.parameters(), lr=1e-4, weight_decay=1e-5)
+        attention_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            attention_optimizer, T_0=5, T_mult=1, eta_min=1e-5)
+        attention_criterion = nn.CrossEntropyLoss()
+        attention_model, history_attention = train_selfattention(
+            attention_model, train_loader, attention_optimizer, attention_scheduler,
+            epochs=15, device=device, criterion=attention_criterion
+        )
+    else:
+        raise ValueError(f"Unknown model type: {model}")
 
+    logger.info("[+] Training completed.")
 
 def parse_options():
     parser = argparse.ArgumentParser(description='TrVD preprocess~.')
@@ -390,6 +484,8 @@ def parse_options():
                         help='Generate vocabulary file', required=False)
     parser.add_argument('-t', '--train', action='store_true',
                         help='Train the model', required=False)
+    parser.add_argument('-m', '--model', default='lstm', choices=['rnn', 'lstm', 'bilstm', 'decision_tree', 'transformer', 'selfattention'],
+                        help='Model type to use', type=str, required=False)
     args = parser.parse_args()
     return args
 
@@ -421,7 +517,7 @@ class VulFuncPipeline:
             generate_vocab()
         if args.train:
             logger.info("[+] Training the model...")
-            train()
+            train(model=args.model)
 
 if __name__ == '__main__':
     ppl = VulFuncPipeline()

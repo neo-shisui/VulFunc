@@ -54,9 +54,14 @@ class CXXVocabularyManager:
         os.makedirs(VOCAB_DIR, exist_ok=True)
 
         # Create token-to-index mapping (sorted alphabetically by token)
+        self.tokens["<unk>"] = 1
+        self.tokens["<pad>"] = 1
+
+
         sorted_items = sorted(self.tokens.items(), key=lambda x: x[0])
         token_to_index = {k: idx for idx, (k, _) in enumerate(sorted_items)}
 
+        
         # Save token-to-index mapping
         with open(os.path.join(VOCAB_DIR, index_filepath), "w", encoding='utf-8') as f:
             json.dump(token_to_index, f, indent=4, ensure_ascii=False)
