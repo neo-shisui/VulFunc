@@ -142,7 +142,7 @@ class SingleNode(ASTNode):
                 token = self.node.text.decode('utf-8')
                 # print(token)
                 # Skip unknown tokens
-                if ' ' in token or len(token) >= 50:
+                if ' ' in token or len(token) >= 40:
                     token = None
                 elif self.node.type == "number_literal":
                     # if float

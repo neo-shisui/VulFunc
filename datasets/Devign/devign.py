@@ -72,13 +72,23 @@ def balance_data(df, random_state=42):
 
 def show_dataset_statistics(input_json):
     # Load the cleaned dataset
-    df = pd.read_json(input_json, orient='records', lines=True)
+    df = pd.read_json(input_json, orient='records')
 
     # Print dataset statistics
     print("Dataset Statistics:")
     print(f"Total samples: {len(df)}")
     print(f"Unique projects: {df['project'].nunique()}")
     
+    # Count vulnerabilities by project
+    project_counts = df['project'].value_counts()
+    print("\nSamples per Project:")
+    for project, count in project_counts.items():
+        print(f"{project}: {count} samples")
+
+        # Count vulnerabilities by target
+        target_counts = df[df['project'] == project]['target'].value_counts()
+        print(f"  Target counts: {target_counts.to_dict()}")
+
     # Count vulnerabilities
     vulnerability_counts = df['target'].value_counts()
     print("\nVulnerability Counts:")

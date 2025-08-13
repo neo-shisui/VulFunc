@@ -2,12 +2,12 @@
 # - https://github.com/XUPT-SSS/TrVD/blob/main/clean_gadget.py
 
 import re
+import sys
 import tree_sitter
 import tree_sitter_cpp
 from pandas import DataFrame
 
-sockets = frozenset(['socket', 'bind', 'listen', 'accept', 'connect', 'send', 'recv', 'sendto', 'recvfrom', 'closesocket',
-                     'WSAStartup', 'WSACleanup', 'getsockname', 'getpeername', 'getsockopt', 'setsockopt'])
+sockets = frozenset(['WSAStartup', 'WSACleanup', ])
 
 # keywords up to C11 and C++17; immutable set
 keywords = frozenset(['__asm', '__builtin', '__cdecl', '__declspec', '__except', '__export', '__far16', '__far32',
@@ -165,14 +165,16 @@ keywords = frozenset(['__asm', '__builtin', '__cdecl', '__declspec', '__except',
                       'PQresultStatus','ifdef','endif','bool','void',
 
                       # Socket functions
-                      'WSAStartup', 'WSACleanup',
+                      'socket', 'bind', 'listen', 'accept', 'closesocket',
+                      'WSAStartup', 'WSACleanup', 'getsockname', 'getpeername', 'getsockopt', 'setsockopt'
                       ])
+
 # holds known non-user-defined functions; immutable set
 main_set = frozenset({'main'})
 # arguments in main d2a; immutable set
 main_args = frozenset({'argc', 'argv'})
 
- # Initialize the tree-sitter parser for C++
+# Initialize the tree-sitter parser for C++
 CPP_LANGUAGE = tree_sitter.Language(tree_sitter_cpp.language())
 parser = tree_sitter.Parser()
 parser.language = CPP_LANGUAGE
@@ -234,24 +236,24 @@ def get_variable_type(node, variables: dict):
             variables[variable_name] = normalized_type
 
         # print(node.text)
-        _type = ''
-        for child in node.children:
-            # print(child.type, child.text)
-            # Pointer or reference
-            if child.type == 'pointer_declarator':
-                for subchild in child.children:
-                    pass
-                    # print('Pointer: ', subchild.type, subchild.text)
-            # Get type
-            if child.type == 'type_identifier' or child.type == 'primitive_type' or child.type == 'struct_specifier' or child.type == 'template_type':
-                _type = normalize_type(child.text.decode('utf8'))
-                # print('Type: ', child.text, ' ', _type)
-            # print(child.type, child.text)
-            # if len(child.children) != 0:
+        # _type = ''
+        # for child in node.children:
+        #     # print(child.type, child.text)
+        #     # Pointer or reference
+        #     if child.type == 'pointer_declarator':
+        #         for subchild in child.children:
+        #             pass
+        #             # print('Pointer: ', subchild.type, subchild.text)
+        #     # Get type
+        #     if child.type == 'type_identifier' or child.type == 'primitive_type' or child.type == 'struct_specifier' or child.type == 'template_type':
+        #         _type = normalize_type(child.text.decode('utf8'))
+        #         # print('Type: ', child.text, ' ', _type)
+        #     # print(child.type, child.text)
+        #     # if len(child.children) != 0:
 
-        # token = node.text.decode('utf8')
-        # if token not in variables:
-        #     variables[token] = []
+        # # token = node.text.decode('utf8')
+        # # if token not in variables:
+        # #     variables[token] = []
     else:
         # Recursively traverse the children of the node
         for child in node.children:
@@ -276,7 +278,7 @@ def normalize_type(type_str):
     type_str = re.sub(r'<([^>]*)>', r'_template_\1', type_str)
 
     # Replace array notation with 'array'
-    type_str = re.sub(r'\[\s*\]', '_array', type_str)
+    type_str = re.sub(r'\[\s*\]', '_arr', type_str)
 
     # Remove multi underscores by single underscore
     type_str = re.sub(r'_+', '_', type_str)
@@ -508,8 +510,10 @@ class CXXNormalization:
 
     def normalization(self, source):
         """Normalize source code by removing comments and cleaning."""
-        nor_code = clean_gadget(source)
-
+        try:
+            nor_code = clean_gadget(source)
+        except Exception as e:
+            return None
         # nor_code = []
         # print(source)
         # for func in source['code']:
