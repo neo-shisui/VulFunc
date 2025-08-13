@@ -36,6 +36,21 @@ def balance_data(df, random_state=42):
     Returns:
     pd.DataFrame: Balanced dataframe
     """
+    # Print dataset before down-sampling
+    # Count vulnerabilities by project
+    project_counts = df['project'].value_counts()
+    print("[*] Number of samples per project in the original dataset:")
+    for project, count in project_counts.items():
+        print(f"{project}: {count} samples")
+
+        # Count vulnerabilities by target
+        target_counts = df[df['project'] == project]['target'].value_counts()
+        print(f"  Target counts: {target_counts.to_dict()}")
+
+    vul_counts = df['target'].value_counts()
+    for item in vul_counts.items():
+        print(f" Target: {item}")
+
     # Rename 'func' column to 'code'
     df = df.rename(columns={'func': 'code'})
 
