@@ -190,6 +190,7 @@ def train_bilstm(model, train_loader, test_loader, optimizer, scheduler, epochs,
     scaler = torch.amp.GradScaler('cuda')
     history = {"train_loss": [], "train_accuracy": [], "test_loss": [], "test_accuracy": []}
 
+    # Training loop with early stopping
     for epoch in range(epochs):
         # Training loop
         model.train()
@@ -246,6 +247,11 @@ def train_bilstm(model, train_loader, test_loader, optimizer, scheduler, epochs,
 
         scheduler.step()
         print(f'Epoch {epoch+1}/{epochs} - Train Loss: {train_loss:.4f}, Train Acc: {train_accuracy:.2f}%, Test Loss: {test_loss:.4f}, Test Acc: {test_accuracy:.2f}%')
+
+        # Early stopping condition
+        # if epoch > 0 and test_loss > history["test_loss"][-2]:
+        #     print("Early stopping triggered")
+        #     break
 
     return model, history
 

@@ -3,6 +3,6 @@ tree-sitter
 numpy
 tree-sitter-cpp
 scikit-learn
-
-
-gensim
+libclang
+matplotlib
+tqdm

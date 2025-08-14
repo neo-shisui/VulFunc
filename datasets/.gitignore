@@ -1,6 +1,12 @@
 devign.json
 TrVD/
-BigVul/
-SARD/
+
+
 Devign/*.json
 Devign/*.pkl
+
+BigVul/*.json
+
+SARD/2017-10-01-juliet-test-suite-for-c-cplusplus-v1-3/
+SARD/*.json
+SARD/*.zip

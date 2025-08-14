@@ -1,0 +1,20 @@
+Dataset Statistics:
+Total samples: 114779
+Unique CWEs: 109
+Unique targets: 2
+Target distribution:
+target
+0    74732
+1    40047
+Top 10 CWEs:
+cwd
+CWE121    4180
+CWE78     4000
+CWE190    3510
+CWE191    2691
+CWE122    2625
+CWE134    2340
+CWE127    1334
+CWE124    1334
+CWE126    1002
+CWE195     960

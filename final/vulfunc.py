@@ -39,7 +39,7 @@ DATASET_PATH = [
     '../datasets/Devign/devign.json',
 ]
 
-VOCAB_PATH = 'CXX_AST_DATA/vocab/vocab_index2.json' # vocab.json'
+VOCAB_PATH = 'CXX_AST_DATA/vocab/vocab_final_index.json' # vocab.json'
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='vulfunc.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -562,7 +562,7 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
     with open(vocab_path, 'r') as f:
         vocab = json.load(f)
     vocab_size = len(vocab)
-    logger.info(f"Vocabulary size: {vocab_size}")
+    logger.info(f"[+] Vocabulary size: {vocab_size}")
     
     # Load the training dataset
     dataset = DATASET_PATH[0] if dataset_name == "sard" else DATASET_PATH[1] if dataset_name == "bigvul" else DATASET_PATH[2]
@@ -651,7 +651,7 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
     labels = train['target'].astype(int)  # Ensure labels are integers
     logger.info("Converting tokens to IDs...")
     train['tokens'] = convert_tokens_to_ids(train['tokens'], vocab)
-    maxlen = 512
+    maxlen = 128
 
     # Prepare data loaders
     train_loader, test_loader = prepare_data(
@@ -728,7 +728,7 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
         # Plot the results
         decision_tree_plot_metrics(train_accuracies, test_accuracies, test_precisions, test_recalls, test_f1s)
     elif model == "bilstm":
-        logger.info("Training BiLSTM model...")
+        logger.info("[*] Training BiLSTM model...")
         bilstm_model = BiLSTMModel(
             vocab_size=vocab_size, embedding_dim=128, hidden_dim=128, num_layers=2, num_classes=2, dropout=0.1
         ).to(device)
@@ -738,9 +738,40 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
             bilstm_optimizer, T_0=5, T_mult=1, eta_min=1e-5)
         bilstm_criterion = nn.CrossEntropyLoss()
         bilstm_model, history_bilstm= train_bilstm(
-            bilstm_model, train_loader, bilstm_optimizer, bilstm_scheduler,
-            epochs=15, device=device, criterion=bilstm_criterion
+            bilstm_model, train_loader, test_loader, bilstm_optimizer, bilstm_scheduler,
+            epochs=3, device=device, criterion=bilstm_criterion
         )
+        # Save model
+        torch.save(bilstm_model.state_dict(), 'bilstm_model.pth')
+        logger.info("[*] BiLSTM model saved as bilstm_model.pth")
+        # Plot the results
+        # bilstm_plot_metrics(history_bilstm['train_loss'], history_bilstm['test_loss'], 
+        #                     history_bilstm['test_accuracy'], history_bilstm['test_precision'], 
+        #                     history_bilstm['test_recall'], history_bilstm['test_f1'])
+
+        # Fine-tune the model on Devign dataset
+        devign_dataset = load_json_file(DATASET_PATH[2])
+        devign = pd.DataFrame(devign_dataset)
+        devign['code'] = devign['code'].apply(lambda x: normalizer.normalization(x))
+        devign['tokens'] = devign['code'].apply(lambda x: tokenizer.tokenize_source(x))
+        devign['tokens'] = convert_tokens_to_ids(devign['tokens'], vocab)
+        devign_labels = devign['target'].astype(int)  # Ensure labels are integers
+        devign_loader, test_loader = prepare_data(
+            devign['tokens'], devign_labels, vocab, max_len=maxlen, batch_size=128)
+
+        # Fine-tune the BiLSTM model on Devign dataset
+        bilstm_model, history_bilstm_devign = train_bilstm(
+            bilstm_model, devign_loader, test_loader, bilstm_optimizer, bilstm_scheduler,
+            epochs=5, device=device, criterion=bilstm_criterion
+        )
+        # Save fine-tuned model
+        torch.save(bilstm_model.state_dict(), 'bilstm_model_finetuned.pth')
+        logger.info("Fine-tuned BiLSTM model saved as bilstm_model_finetuned.pth")
+        # Plot the results
+        # bilstm_plot_metrics(history_bilstm_devign['train_loss'], history_bilstm_devign['test_loss'], 
+        #                     history_bilstm_devign['test_accuracy'], history_bilstm_devign['test_precision'], 
+        #                     history_bilstm_devign['test_recall'], history_bilstm_devign['test_f1'])
+
     elif model == "selfattention":
         logger.info("Training Self-Attention model...")
         attention_model = SelfAttentionModel(
