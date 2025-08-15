@@ -75,6 +75,48 @@ def convert_tokens_to_ids(tokenized_data, vocab):
         token_ids_data.append(token_ids)
     return token_ids_data
 
+def prepare_data_without_split(token_ids_data, labels, vocab, max_len=128, test_size=0.2, batch_size=32):
+    """
+    Prepare data for training by padding sequences, splitting into train/test sets,
+    and creating DataLoader objects.
+
+    Args:
+        token_ids_data: List of lists containing token IDs
+        labels: List of labels (0 for valid, 1 for anomalous)
+        max_len: Maximum sequence length for padding
+        test_size: Proportion of data to use for testing
+        batch_size: Batch size for training
+
+    Returns:
+        train_loader: DataLoader for training data
+        test_loader: DataLoader for testing data
+    """
+    # Ensure token_ids_data and labels have the same length
+    if len(token_ids_data) != len(labels):
+        raise ValueError(
+            f"Mismatch between token_ids_data length ({len(token_ids_data)}) and labels length ({len(labels)})")
+
+    # Pad sequences to the same length
+    padded_data = []
+    for seq in token_ids_data:
+        if len(seq) < max_len:
+            padded_seq = seq + [vocab['<pad>']] * (max_len - len(seq))
+        else:
+            padded_seq = seq[:max_len]
+        padded_data.append(padded_seq)
+
+    # Convert to PyTorch tensors
+    X = torch.tensor(padded_data, dtype=torch.long)
+    # y = torch.tensor(labels, dtype=torch.long)
+    y = torch.tensor(labels.values, dtype=torch.long)
+
+    # Create DataLoader objects
+    dataset = TensorDataset(X, y)
+    dataset_loader = DataLoader(
+        dataset, batch_size=batch_size, shuffle=False)
+
+    return dataset_loader
+
 def prepare_data(token_ids_data, labels, vocab, max_len=128, test_size=0.2, batch_size=32):
     """
     Prepare data for training by padding sequences, splitting into train/test sets,
@@ -372,6 +414,9 @@ def train_multiclass(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA
         train = pd.DataFrame(train)
 
     if dataset_name == "sard":
+        # Drop record with target 0
+        train = train[train['target'] != 0]
+
         # Using top 6 CWE with most samples: CWE190,121,191,78,134,122
         top_cwes = ['CWE190', 'CWE121', 'CWE191', 'CWE78', 'CWE134', 'CWE122']
 
@@ -455,17 +500,18 @@ def train_multiclass(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     num_classes = len(labels.unique())
-
+    batch_size = 32
+    embedding_dim = 256
+    hidden_dim = 256
+    num_layers = 2
+    dropout = 0.2
+    num_epochs = 50
+    learning_rate = 0.001
+    criterion = nn.CrossEntropyLoss()
     if model == "lstm":
-        batch_size = 32
-        num_epochs = 10
-        learning_rate = 0.001
-
         # Initialize model, loss function, and optimizer
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model = LSTMModel(vocab_size=vocab_size, embedding_dim=256, 
-                          hidden_dim=256, num_layers=2, num_classes=2, dropout=0.1).to(device)
-        criterion = nn.CrossEntropyLoss()
+        model = LSTMModel(vocab_size=vocab_size, embedding_dim=embedding_dim, 
+                          hidden_dim=hidden_dim, num_layers=num_layers, num_classes=num_classes, dropout=dropout).to(device)
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
         # Train the model
@@ -473,19 +519,6 @@ def train_multiclass(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA
 
         # Plot the results
         lstm_plot_metrics(train_losses, test_losses, test_accuracies, test_precisions, test_recalls, test_f1s)
-
-        # print("Example first tokens:", train['tokens'].iloc[0])  # Debugging output
-        # train['tokens'] = train['tokens'].apply(lambda x: [vocab.get(token, 0) for token in x])  # Default to 0 for unknown tokens
-        # logger.info("Tokenization completed.")
-
-        # print("Example tokens:", train['tokens'].iloc[0])  # Debugging output
-
-        # # Covert tokens to indices
-        # train['token_indices'] = train['tokens'].apply(lambda x: [vocab.get(token, 0) for token in x])  # Default to 0 for unknown tokens
-
-        # # Train the model
-        # model = LSTMModel(vocab_size, embedding_dim, hidden_dim=256, num_layers=2, num_classes=2)
-        # logger.info("LSTM model initialized.")
     elif model == "rnn":
         embedding_dim = 256
         hidden_dim = 256
@@ -525,9 +558,8 @@ def train_multiclass(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA
         decision_tree_plot_metrics(train_accuracies, test_accuracies, test_precisions, test_recalls, test_f1s)
     elif model == "bilstm":
         logger.info("Training BiLSTM model...")
-        bilstm_model = BiLSTMModel(
-            vocab_size=vocab_size, embedding_dim=128, hidden_dim=128, num_layers=2, num_classes=num_classes, dropout=0.1
-        ).to(device)
+        bilstm_model = BiLSTMModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim, 
+            num_layers=num_layers, num_classes=num_classes, dropout=dropout).to(device)
         bilstm_optimizer = optim.AdamW(
             bilstm_model.parameters(), lr=1e-4, weight_decay=1e-5)
         bilstm_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
@@ -535,12 +567,12 @@ def train_multiclass(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA
         bilstm_criterion = nn.CrossEntropyLoss()
         bilstm_model, history_bilstm= train_bilstm(
             bilstm_model, train_loader, test_loader, bilstm_optimizer, bilstm_scheduler,
-            epochs=15, device=device, criterion=bilstm_criterion
+            epochs=num_epochs, device=device, criterion=bilstm_criterion
         )
     elif model == "selfattention":
         logger.info("Training Self-Attention model...")
         attention_model = SelfAttentionModel(
-            vocab_size=vocab_size, embedding_dim=128, hidden_dim=128, num_classes=num_classes, dropout=0.1
+            vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim, num_classes=num_classes, dropout=dropout
         ).to(device)
         attention_optimizer = optim.AdamW(
             attention_model.parameters(), lr=1e-4, weight_decay=1e-5)
@@ -549,12 +581,197 @@ def train_multiclass(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA
         attention_criterion = nn.CrossEntropyLoss()
         attention_model, history_attention = train_selfattention(
             attention_model, train_loader, test_loader, attention_optimizer, attention_scheduler,
-            epochs=15, device=device, criterion=attention_criterion
+            epochs=num_epochs, device=device, criterion=attention_criterion
         )
     else:
         raise ValueError(f"Unknown model type: {model}")
 
     logger.info("[+] Training completed.")
+
+def train_kfold(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/vocab_final_index.json'):
+    # Read vocabulary from file
+    vocab = {}
+    with open(vocab_path, 'r') as f:
+        vocab = json.load(f)
+    vocab_size = len(vocab)
+    logger.info(f"[+] Vocabulary size: {vocab_size}")
+    
+    # Load the training dataset
+    dataset = DATASET_PATH[0] if dataset_name == "sard" else DATASET_PATH[1] if dataset_name == "bigvul" else DATASET_PATH[2]
+    train = load_json_file(dataset)
+
+    # Convert to DataFrame
+    if isinstance(train, dict):
+        train = pd.DataFrame.from_dict(train, orient='index')
+    elif isinstance(train, list):
+        train = pd.DataFrame(train)
+
+    # Balance the dataset by downsampling to cwe with least samples
+    if dataset_name == "sard":
+        # Balancing dataset by column 'target' (2 classes: 0 and 1)
+        train = train.groupby('target').apply(lambda x: x.sample(n=train['target'].value_counts().min())).reset_index(drop=True)
+        
+        # Summarize the dataset
+        logger.info(f"Dataset size after filtering: {len(train)}")
+        print(f"Dataset size after filtering: {len(train)}")
+        print(train['target'].value_counts())
+    elif dataset_name == "bigvul":
+        # Before downsampling
+        logger.info(f"Dataset size before filtering: {len(train)}")
+        print(f"Dataset size before filtering: {len(train)}")
+        print(train['target'].value_counts())
+
+        # Balancing dataset by column 'target' (2 classes: 0 and 1)
+        train = train.groupby('target').apply(lambda x: x.sample(n=train['target'].value_counts().min())).reset_index(drop=True)
+
+        # Summarize the dataset
+        logger.info(f"Dataset size after filtering: {len(train)}")
+        print(f"Dataset size after filtering: {len(train)}")
+        print(train['target'].value_counts())
+
+        # Rename 'func_before' to 'code' for consistency
+        train.rename(columns={'func_before': 'code'}, inplace=True)
+
+    # Get only 10% sample
+    # Define the target column name (adjust if different)
+    # target_column = 'target'
+
+    # Extract a 10% balanced subset
+    # subset_size = 0.1  # 10% of the dataset
+    # train = train.groupby(target_column).sample(frac=subset_size, random_state=None)
+
+    # # Print code of 5 samples per target class
+    # for target_value in train['target'].unique():
+    #     print(f"Samples for target {target_value}:")
+    #     sample = train[train['target'] == target_value].sample(n=5, random_state=42)
+    #     for index, row in sample.iterrows():
+    #         print(f"Index: {index}, Code: {row['code']}")
+
+    # Normalize source code
+    normalizer = CXXNormalization()
+    train['code'] = train['code'].apply(lambda x: normalizer.normalization(x))
+
+    # Tokenize
+    tokenizer = CXXNodeTokenizer()
+    train['tokens'] = train['code'].apply(lambda x: tokenizer.tokenize_source(x))
+
+    print("Example tokens:", train['tokens'].iloc[0])  # Debugging output
+
+    # Count Length Token
+    # Calculate token lengths (number of tokens per row)
+    token_lengths = train['tokens'].apply(len)
+
+    # Compute statistics
+    min_length = token_lengths.min()
+    max_length = token_lengths.max()
+    median_length = token_lengths.median()
+    average_length = token_lengths.mean()
+
+    # Print the results
+    print("Token Length Statistics:")
+    print(f"Minimum length: {min_length}")
+    print(f"Maximum length: {max_length}")
+    print(f"Median length: {median_length:.2f}")
+    print(f"Average length: {average_length:.2f}")
+
+    # Drop columns that code is None
+    train = train[train['code'].notnull()]
+
+    # Convert tokens to indices
+    labels = train['target'].astype(int)  # Ensure labels are integers
+    logger.info("Converting tokens to IDs...")
+    train['tokens'] = convert_tokens_to_ids(train['tokens'], vocab)
+    maxlen = 128
+
+    # Prepare data loaders
+    dataset_loader = prepare_data_without_split(
+        train['tokens'], labels, vocab, max_len=maxlen, batch_size=128)
+
+    # Model selection
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    num_classes = 2  # Binary classification (valid vs anomalous)
+    embedding_dim = 256
+    hidden_dim = 256
+    num_layers = 2
+    dropout = 0.2
+    num_epochs = 50
+    learning_rate = 0.001
+    batch_size = 32
+    criterion = nn.CrossEntropyLoss()
+
+    logger.info(f"[*] Training model: {model}")
+    if model == "lstm":
+        # Initialize model, loss function, and optimizer
+        model = LSTMModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim
+            , num_layers=num_layers, num_classes=num_classes, dropout=dropout).to(device)
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+        # Train the model
+        train_losses, test_losses, test_accuracies, test_precisions, test_recalls, test_f1s = train_lstm(model, train_loader, test_loader, criterion, optimizer, num_epochs, device, num_classes)
+
+        # Plot the results
+        lstm_plot_metrics(train_losses, test_losses, test_accuracies, test_precisions, test_recalls, test_f1s)
+    elif model == "rnn":
+        # Initialize model, loss function, and optimizer
+        model = RNNModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim, 
+            num_layers=num_layers, num_classes=num_classes, dropout=dropout).to(device)
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        
+        # Train the model
+        train_losses, test_losses, test_accuracies, test_precisions, test_recalls, test_f1s = train_rnn(model, train_loader, test_loader, criterion, optimizer, num_epochs, device, num_classes)
+
+        # Plot the results
+        rnn_plot_metrics(train_losses, test_losses, test_accuracies, test_precisions, test_recalls, test_f1s)
+    elif model == "decision_tree":
+        from sklearn.tree import DecisionTreeClassifier
+        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+        # Initialize model
+        model = DecisionTreeClassifier(max_depth=5, random_state=42)
+
+        # Split data
+        X_train, X_test, y_train, y_test = train_test_split(train['tokens'].tolist(), labels, test_size=0.2, random_state=42)
+
+
+        # Train a Decision Tree model
+        train_accuracies, test_accuracies, test_precisions, test_recalls, test_f1s = train_decision_tree(
+            model, X_train, y_train, X_test, y_test, num_epochs=num_epochs)
+        
+        # Plot the results
+        decision_tree_plot_metrics(train_accuracies, test_accuracies, test_precisions, test_recalls, test_f1s)
+    elif model == "bilstm":
+        logger.info("[*] Training BiLSTM model...")
+        bilstm_model = BiLSTMModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim
+            , num_layers=num_layers, num_classes=num_classes, dropout=dropout).to(device)
+        bilstm_optimizer = optim.AdamW(
+            bilstm_model.parameters(), lr=1e-4, weight_decay=1e-5)
+        bilstm_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            bilstm_optimizer, T_0=5, T_mult=1, eta_min=1e-5)
+        bilstm_model, history_bilstm= train_bilstm(
+            bilstm_model, train_loader, test_loader, bilstm_optimizer, bilstm_scheduler,
+            epochs=num_epochs, device=device, criterion=criterion
+        )
+    elif model == "selfattention":
+        logger.info("Training Self-Attention model...")
+        attention_model = SelfAttentionModel(
+            vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim
+            , num_classes=num_classes, dropout=dropout
+        ).to(device)
+        attention_optimizer = optim.AdamW(
+            attention_model.parameters(), lr=1e-4, weight_decay=1e-5)
+        attention_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
+            attention_optimizer, T_0=5, T_mult=1, eta_min=1e-5)
+        attention_criterion = nn.CrossEntropyLoss()
+        attention_model, history_attention = train_selfattention(
+            attention_model, train_loader, test_loader, attention_optimizer, attention_scheduler,
+            epochs=num_epochs, device=device, criterion=attention_criterion
+        )
+    else:
+        raise ValueError(f"Unknown model type: {model}")
+
+    logger.info("[+] Training completed.")
+
 
 def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/vocab_final_index.json'):
     # Read vocabulary from file
@@ -600,7 +817,6 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
         # Rename 'func_before' to 'code' for consistency
         train.rename(columns={'func_before': 'code'}, inplace=True)
 
-
     # Get only 10% sample
     # Define the target column name (adjust if different)
     # target_column = 'target'
@@ -608,6 +824,13 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
     # Extract a 10% balanced subset
     # subset_size = 0.1  # 10% of the dataset
     # train = train.groupby(target_column).sample(frac=subset_size, random_state=None)
+
+    # # Print code of 5 samples per target class
+    # for target_value in train['target'].unique():
+    #     print(f"Samples for target {target_value}:")
+    #     sample = train[train['target'] == target_value].sample(n=5, random_state=42)
+    #     for index, row in sample.iterrows():
+    #         print(f"Index: {index}, Code: {row['code']}")
 
     # Normalize source code
     normalizer = CXXNormalization()
@@ -636,14 +859,6 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
     print(f"Median length: {median_length:.2f}")
     print(f"Average length: {average_length:.2f}")
 
-    # Convert the code to AST
-    # train['code'] = train['code'].apply(lambda x: parse_ast(x))
-
-    # # Tokenize the code
-    # tokenizer = CXXNodeTokenizer()
-    # train['tokens'] = train['code'].apply(lambda x: tokenizer.tokenize(x))
-    # logger.info(f"Number of training samples: {len(train)}")
-
     # Drop columns that code is None
     train = train[train['code'].notnull()]
 
@@ -660,16 +875,21 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
     # Model selection
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    if model == "lstm":
-        batch_size = 32
-        num_epochs = 10
-        learning_rate = 0.001
+    num_classes = 2  # Binary classification (valid vs anomalous)
+    embedding_dim = 256
+    hidden_dim = 256
+    num_layers = 2
+    dropout = 0.2
+    num_epochs = 50
+    learning_rate = 0.001
+    batch_size = 32
+    criterion = nn.CrossEntropyLoss()
 
+    logger.info(f"[*] Training model: {model}")
+    if model == "lstm":
         # Initialize model, loss function, and optimizer
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model = LSTMModel(vocab_size=vocab_size, embedding_dim=256, 
-                          hidden_dim=256, num_layers=2, num_classes=2, dropout=0.1).to(device)
-        criterion = nn.CrossEntropyLoss()
+        model = LSTMModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim
+            , num_layers=num_layers, num_classes=num_classes, dropout=dropout).to(device)
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
         # Train the model
@@ -677,34 +897,12 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
 
         # Plot the results
         lstm_plot_metrics(train_losses, test_losses, test_accuracies, test_precisions, test_recalls, test_f1s)
-
-        # print("Example first tokens:", train['tokens'].iloc[0])  # Debugging output
-        # train['tokens'] = train['tokens'].apply(lambda x: [vocab.get(token, 0) for token in x])  # Default to 0 for unknown tokens
-        # logger.info("Tokenization completed.")
-
-        # print("Example tokens:", train['tokens'].iloc[0])  # Debugging output
-
-        # # Covert tokens to indices
-        # train['token_indices'] = train['tokens'].apply(lambda x: [vocab.get(token, 0) for token in x])  # Default to 0 for unknown tokens
-
-        # # Train the model
-        # model = LSTMModel(vocab_size, embedding_dim, hidden_dim=256, num_layers=2, num_classes=2)
-        # logger.info("LSTM model initialized.")
     elif model == "rnn":
-        embedding_dim = 256
-        hidden_dim = 256
-        num_layers = 2
-        num_classes = 2  # Binary classification
-        dropout = 0.2
-        batch_size = 32
-        num_epochs = 10
-        learning_rate = 0.001
-        
         # Initialize model, loss function, and optimizer
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model = RNNModel(vocab_size, embedding_dim, hidden_dim, num_layers, num_classes, dropout).to(device)
-        criterion = nn.CrossEntropyLoss()
+        model = RNNModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim, 
+            num_layers=num_layers, num_classes=num_classes, dropout=dropout).to(device)
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        
         # Train the model
         train_losses, test_losses, test_accuracies, test_precisions, test_recalls, test_f1s = train_rnn(model, train_loader, test_loader, criterion, optimizer, num_epochs, device, num_classes)
 
@@ -723,59 +921,27 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
 
         # Train a Decision Tree model
         train_accuracies, test_accuracies, test_precisions, test_recalls, test_f1s = train_decision_tree(
-            model, X_train, y_train, X_test, y_test, num_epochs=10)
+            model, X_train, y_train, X_test, y_test, num_epochs=num_epochs)
         
         # Plot the results
         decision_tree_plot_metrics(train_accuracies, test_accuracies, test_precisions, test_recalls, test_f1s)
     elif model == "bilstm":
         logger.info("[*] Training BiLSTM model...")
-        bilstm_model = BiLSTMModel(
-            vocab_size=vocab_size, embedding_dim=128, hidden_dim=128, num_layers=2, num_classes=2, dropout=0.1
-        ).to(device)
+        bilstm_model = BiLSTMModel(vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim
+            , num_layers=num_layers, num_classes=num_classes, dropout=dropout).to(device)
         bilstm_optimizer = optim.AdamW(
             bilstm_model.parameters(), lr=1e-4, weight_decay=1e-5)
         bilstm_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
             bilstm_optimizer, T_0=5, T_mult=1, eta_min=1e-5)
-        bilstm_criterion = nn.CrossEntropyLoss()
         bilstm_model, history_bilstm= train_bilstm(
             bilstm_model, train_loader, test_loader, bilstm_optimizer, bilstm_scheduler,
-            epochs=3, device=device, criterion=bilstm_criterion
+            epochs=num_epochs, device=device, criterion=criterion
         )
-        # Save model
-        torch.save(bilstm_model.state_dict(), 'bilstm_model.pth')
-        logger.info("[*] BiLSTM model saved as bilstm_model.pth")
-        # Plot the results
-        # bilstm_plot_metrics(history_bilstm['train_loss'], history_bilstm['test_loss'], 
-        #                     history_bilstm['test_accuracy'], history_bilstm['test_precision'], 
-        #                     history_bilstm['test_recall'], history_bilstm['test_f1'])
-
-        # Fine-tune the model on Devign dataset
-        devign_dataset = load_json_file(DATASET_PATH[2])
-        devign = pd.DataFrame(devign_dataset)
-        devign['code'] = devign['code'].apply(lambda x: normalizer.normalization(x))
-        devign['tokens'] = devign['code'].apply(lambda x: tokenizer.tokenize_source(x))
-        devign['tokens'] = convert_tokens_to_ids(devign['tokens'], vocab)
-        devign_labels = devign['target'].astype(int)  # Ensure labels are integers
-        devign_loader, test_loader = prepare_data(
-            devign['tokens'], devign_labels, vocab, max_len=maxlen, batch_size=128)
-
-        # Fine-tune the BiLSTM model on Devign dataset
-        bilstm_model, history_bilstm_devign = train_bilstm(
-            bilstm_model, devign_loader, test_loader, bilstm_optimizer, bilstm_scheduler,
-            epochs=5, device=device, criterion=bilstm_criterion
-        )
-        # Save fine-tuned model
-        torch.save(bilstm_model.state_dict(), 'bilstm_model_finetuned.pth')
-        logger.info("Fine-tuned BiLSTM model saved as bilstm_model_finetuned.pth")
-        # Plot the results
-        # bilstm_plot_metrics(history_bilstm_devign['train_loss'], history_bilstm_devign['test_loss'], 
-        #                     history_bilstm_devign['test_accuracy'], history_bilstm_devign['test_precision'], 
-        #                     history_bilstm_devign['test_recall'], history_bilstm_devign['test_f1'])
-
     elif model == "selfattention":
         logger.info("Training Self-Attention model...")
         attention_model = SelfAttentionModel(
-            vocab_size=vocab_size, embedding_dim=128, hidden_dim=128, num_classes=2, dropout=0.1
+            vocab_size=vocab_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim
+            , num_classes=num_classes, dropout=dropout
         ).to(device)
         attention_optimizer = optim.AdamW(
             attention_model.parameters(), lr=1e-4, weight_decay=1e-5)
@@ -784,7 +950,7 @@ def train(dataset_name="sard", model="lstm", vocab_path='CXX_AST_DATA/vocab/voca
         attention_criterion = nn.CrossEntropyLoss()
         attention_model, history_attention = train_selfattention(
             attention_model, train_loader, test_loader, attention_optimizer, attention_scheduler,
-            epochs=15, device=device, criterion=attention_criterion
+            epochs=num_epochs, device=device, criterion=attention_criterion
         )
     else:
         raise ValueError(f"Unknown model type: {model}")

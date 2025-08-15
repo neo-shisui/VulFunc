@@ -54,7 +54,7 @@ class SelfAttentionModel(nn.Module):
         
         return out
 
-def train_selfattention(model, train_loader, test_loader, optimizer, scheduler, epochs, device, criterion):
+def train_selfattention(model, train_loader, test_loader, optimizer, scheduler, epochs, device, criterion, patience=5, num_classes=2):
     if len(train_loader) == 0:
         raise ValueError("train_loader is empty")
     if len(test_loader) == 0:
@@ -62,7 +62,14 @@ def train_selfattention(model, train_loader, test_loader, optimizer, scheduler, 
     
     model.train()
     scaler = torch.amp.GradScaler('cuda')
-    history = {"train_loss": [], "train_accuracy": [], "test_loss": [], "test_accuracy": []}
+    history = {
+        "train_loss": [], "train_accuracy": [],
+        "test_loss": [], "test_accuracy": [],
+        "test_precision": [], "test_recall": [], "test_f1": []
+    }
+
+    best_loss = float('inf')
+    epochs_no_improve = 0
 
     for epoch in range(epochs):
         # Training loop
@@ -102,6 +109,8 @@ def train_selfattention(model, train_loader, test_loader, optimizer, scheduler, 
         test_loss = 0
         test_correct = 0
         test_total = 0
+        all_preds = []
+        all_targets = []
         with torch.no_grad():
             for inputs, targets in test_loader:
                 inputs, targets = inputs.to(device), targets.to(device)
@@ -112,15 +121,60 @@ def train_selfattention(model, train_loader, test_loader, optimizer, scheduler, 
                 _, predicted = outputs.max(1)
                 test_total += targets.size(0)
                 test_correct += predicted.eq(targets).sum().item()
+                all_preds.append(predicted.cpu())
+                all_targets.append(targets.cpu())
 
         test_loss = test_loss / len(test_loader)
         test_accuracy = 100. * test_correct / test_total
         history["test_loss"].append(test_loss)
         history["test_accuracy"].append(test_accuracy)
 
-        scheduler.step()
-        print(f'Epoch {epoch+1}/{epochs} - Train Loss: {train_loss:.4f}, Train Acc: {train_accuracy:.2f}%, Test Loss: {test_loss:.4f}, Test Acc: {test_accuracy:.2f}%')
+        # Compute metrics
+        preds = torch.cat(all_preds)
+        targets = torch.cat(all_targets)
+        confusion = torch.zeros(num_classes, num_classes)
+        for t, p in zip(targets, preds):
+            # Clamp indices to valid range
+            t_idx = min(max(int(t), 0), num_classes - 1)
+            p_idx = min(max(int(p), 0), num_classes - 1)
+            confusion[t_idx, p_idx] += 1
+        tp = confusion.diag()
+        fp = confusion.sum(0) - tp
+        fn = confusion.sum(1) - tp
+        precision_per_class = tp / (tp + fp + 1e-6)
+        recall_per_class = tp / (tp + fn + 1e-6)
+        f1_per_class = 2 * precision_per_class * recall_per_class / (precision_per_class + recall_per_class + 1e-6)
+        precision = precision_per_class.mean().item()
+        recall = recall_per_class.mean().item()
+        f1 = f1_per_class.mean().item()
+        history["test_precision"].append(precision)
+        history["test_recall"].append(recall)
+        history["test_f1"].append(f1)
 
+        scheduler.step()
+        print(f'Epoch {epoch+1}/{epochs} - Train Loss: {train_loss:.4f}, Train Acc: {train_accuracy:.2f}%, '
+              f'Test Loss: {test_loss:.4f}, Test Acc: {test_accuracy:.2f}%, '
+              f'Precision: {precision:.4f}, Recall: {recall:.4f}, F1: {f1:.4f}')
+
+        # Early stopping
+        if test_loss < best_loss:
+            best_loss = test_loss
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+            if epochs_no_improve >= patience:
+                print(f"Early stopping triggered after {epoch+1} epochs.")
+                break
+
+    # Best test loss, accuracy, and metrics
+    best_test_loss = min(history["test_loss"])
+    best_test_accuracy = max(history["test_accuracy"])
+    best_test_precision = max(history["test_precision"])
+    best_test_recall = max(history["test_recall"])
+    best_test_f1 = max(history["test_f1"])
+    print(f'Best Test Loss: {best_test_loss:.4f}, Best Test Accuracy: {best_test_accuracy:.2f}%, '
+          f'Best Test Precision: {best_test_precision:.4f}, Best Test Recall: {best_test_recall:.4f}, '
+          f'Best Test F1: {best_test_f1:.4f}')
     return model, history
 
 def train_selfattention_without_test(model, train_loader, optimizer, scheduler, epochs, device, criterion):
