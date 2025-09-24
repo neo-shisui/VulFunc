@@ -11,6 +11,14 @@ import tree_sitter_cpp
 import xml.etree.ElementTree as ET
 from clang.cindex import Index, CursorKind
 
+# CPP_LANGUAGE = tree_sitter.Language(tree_sitter_cpp.language())
+# parser = tree_sitter.Parser()
+# parser.language = CPP_LANGUAGE
+
+# import tree_sitter
+# import tree_sitter_cpp
+# from tree_sitter_languages import get_language
+
 CPP_LANGUAGE = tree_sitter.Language(tree_sitter_cpp.language())
 parser = tree_sitter.Parser()
 parser.language = CPP_LANGUAGE
@@ -187,6 +195,7 @@ def create_sard_json(root_dir, output_json):
     print(f"Created {output_json} with {len(dataset)} functions.")
 
 def read_file(file_path):
+    pass 
 
 def extract_functions(file_path):
     """
@@ -218,10 +227,7 @@ def extract_functions(file_path):
         print(f"Error parsing {file_path}: {e}")
     return functions
 
-tree = parser.parse(code)
-root = tree.root_node
-
-def extract_blocks(node, depth=0):
+def extract_blocks(code, node, depth=0):
     """Recursively extract blocks (L1, L2, L3...)"""
     blocks = []
     if node.type == "compound_statement":  # { ... }
@@ -231,26 +237,45 @@ def extract_blocks(node, depth=0):
         depth = depth + 1
 
     for child in node.children:
-        blocks.extend(extract_blocks(child, depth))
+        blocks.extend(extract_blocks(code, child, depth))
+
+    # sort blocks by depth before returning
+    if depth == 1:  # only sort once, at the top-level call
+        blocks = sorted(blocks, key=lambda x: x[0])
     return blocks
 
 def process_functions(functions):
-    
+    for func in functions:
+        code = func["func_code"].encode("utf-8")
+        print(code)
+        tree = parser.parse(code)
+        root = tree.root_node
+
+        # Walk AST and collect blocks
+        all_blocks = []
+        for child in root.children:
+            if child.type == "function_definition":
+                all_blocks.extend(extract_blocks(code, child, depth=1))
+
+        print(f"Function: {func['func_name']}")
+        for depth, block in all_blocks:
+            print(f"L{depth}:\n{block}\n")
+        print("=====================================")
 
 # Example usage
 if __name__ == "__main__":
     # Handle command line arguments
-    parser = argparse.ArgumentParser(description='VULFUNC: Data Preprocessing')
-    parser.add_argument('--mode', required=True, choices=["extract-func", "process-func"], 
+    args_parser = argparse.ArgumentParser(description='VULFUNC: Data Preprocessing')
+    args_parser.add_argument('--mode', required=True, choices=["extract-func", "process-func"], 
         help='Mode to process')
 
     # Extract function from source file
-    parser.add_argument('--inputpath', required=False, help='Path to file source code C/C++')
-    parser.add_argument('--outputpath', required=False, help='Path to save results')
+    args_parser.add_argument('--inputpath', required=False, help='Path to file source code C/C++')
+    args_parser.add_argument('--outputpath', required=False, help='Path to save results')
 
 
-    # parser.add_argument('--statistics', action='store_true', help='Show dataset statistics')
-    args = parser.parse_args()
+    # args_parser.add_argument('--statistics', action='store_true', help='Show dataset statistics')
+    args = args_parser.parse_args()
 
     if args.mode == 'extract-func' and args.inputpath != None and args.outputpath != None:
         print("[*] Extract Function from File")
@@ -266,7 +291,7 @@ if __name__ == "__main__":
         with open(args.inputpath, "r", encoding="utf-8") as f:
             functions = json.load(f)
 
-        process_function(functions)
+        process_functions(functions)
 
     # if args.clean:
     #     sard_test_suite = "./2017-10-01-juliet-test-suite-for-c-cplusplus-v1-3/C/testcases/"

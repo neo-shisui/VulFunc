@@ -21,6 +21,11 @@ int main() {
             x += i;
         }
     }
+    else {
+        for (int i=0; i<10; i++) {
+                x *= i;
+            }
+    }
     return x;
 }
 """
